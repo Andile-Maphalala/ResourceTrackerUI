@@ -1,3 +1,6 @@
 <Solution>
+  <Project Path="ResourceTrackerUI.ApiClient/ResourceTrackerUI.ApiClient.csproj" />
+  <Project Path="ResourceTrackerUI.App/ResourceTrackerUI.App.csproj" />
+  <Project Path="ResourceTrackerUI.Domain/ResourceTrackerUI.Domain.csproj" />
   <Project Path="ResourceTrackerUI/ResourceTrackerUI.csproj" />
 </Solution>

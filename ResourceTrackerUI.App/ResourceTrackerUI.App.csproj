@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ResourceTrackerUI.ApiClient\ResourceTrackerUI.ApiClient.csproj" />
+    <ProjectReference Include="..\ResourceTrackerUI.Domain\ResourceTrackerUI.Domain.csproj" />
+  </ItemGroup>
+
+</Project>
