@@ -1,27 +1,39 @@
-using ResourceTrackerUI.Components;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using ResourceTrackerUI.ApiClient;
+using ResourceTrackerUI.Application;
+using ResourceTrackerUI.Application.Services.Auth;
 
-var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
-
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+namespace ResourceTrackerUI
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
+    public class Program
+    {
+        public static async Task Main(string[] args)
+        {
+            var builder = WebAssemblyHostBuilder.CreateDefault(args);
+            builder.RootComponents.Add<App>("#app");
+            builder.RootComponents.Add<HeadOutlet>("head::after");
+
+
+            //////////////////////////////////////////////////
+
+            // Register HttpClient for API
+            var apiBaseUrl = builder.Configuration["ApiBaseUrl"];
+            builder.Services.AddHttpClient("ApiClient", client =>
+            {
+                client.BaseAddress = new Uri(apiBaseUrl);
+            })
+            .AddHttpMessageHandler<AuthHeaderHandler>();
+
+            //Services
+            builder.Services.AddApiClientServices();
+            builder.Services.AddAppServices();
+
+            //Authentication
+            builder.Services.AddAuthorizationCore();
+
+            /////////////////////////////////////////////////////
+            await builder.Build().RunAsync();
+        }
+    }
 }
-app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
-
-app.UseAntiforgery();
-
-app.MapStaticAssets();
-app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
-
-app.Run();

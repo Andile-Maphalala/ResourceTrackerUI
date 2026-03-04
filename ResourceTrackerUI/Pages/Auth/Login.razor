@@ -1,0 +1,64 @@
+﻿@page "/login"
+
+@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Application.Services.Auth
+@using ResourceTrackerUI.Domain.Models
+@using System.Text.Json
+
+<h3>Login</h3>
+<EditForm Model="model" OnValidSubmit="Submit" FormName="LoginForm">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div>
+        <label>Username (email)</label><br />
+        <InputText @bind-Value="model.Username" />
+    </div>
+
+    <div style="margin-top:8px">
+        <label>Password</label><br />
+        <InputText @bind-Value="model.Password" type="password" />
+    </div>
+
+    <div style="margin-top:12px">
+        <button type="submit">Sign in</button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <div style="color:red;margin-top:12px">@error</div>
+    }
+</EditForm>
+
+    @code {
+
+    [Inject]
+    private IAuthService _authService { get; set; }
+
+    [Inject]
+    private ILocalStorageService _storage { get; set; }
+
+    [Inject]
+    private JwtAuthStateProvider _authProvider { get; set; }
+
+    [Inject]
+    private NavigationManager _navigation { get; set; }
+
+    private LoginRequestModel model { get; set; } = new();
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var test = _authProvider.GetAuthenticationStateAsync();
+    }
+
+    private async Task Submit(EditContext context)
+    {
+        var response = await _authService.LoginAsync(model);
+
+        await _storage.SetItemAsync("token", response.Token);
+        await _authProvider.MarkUserAsAuthenticatedAsync(response.Token);
+        _navigation.NavigateTo("/");
+    }
+
+}

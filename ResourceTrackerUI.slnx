@@ -1,6 +1,12 @@
 <Solution>
-  <Project Path="ResourceTrackerUI.ApiClient/ResourceTrackerUI.ApiClient.csproj" />
-  <Project Path="ResourceTrackerUI.App/ResourceTrackerUI.App.csproj" />
-  <Project Path="ResourceTrackerUI.Domain/ResourceTrackerUI.Domain.csproj" />
-  <Project Path="ResourceTrackerUI/ResourceTrackerUI.csproj" />
+  <Folder Name="/Core/">
+    <Project Path="ResourceTrackerUI.Application/ResourceTrackerUI.Application.csproj" Id="e14d7748-ae2b-4307-be0b-9ab4dfd3862f" />
+    <Project Path="ResourceTrackerUI.Domain/ResourceTrackerUI.Domain.csproj" />
+  </Folder>
+  <Folder Name="/Infrastructure/">
+    <Project Path="ResourceTrackerUI.ApiClient/ResourceTrackerUI.ApiClient.csproj" />
+  </Folder>
+  <Folder Name="/UI/">
+    <Project Path="ResourceTrackerUI/ResourceTrackerUI.csproj" Id="8b1dba9c-7919-4671-b605-1277ea50f6ab" />
+  </Folder>
 </Solution>

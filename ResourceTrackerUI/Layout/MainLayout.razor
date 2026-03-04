@@ -1,0 +1,80 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Application.Services.Auth
+@inherits LayoutComponentBase
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            @if (IsAuthenticated)
+            {
+                <span>Hello, @Name</span>         
+                <button @onclick="Logout">Sign Out</button>
+
+            }
+            else
+            {
+               <a href="/login" >Login</a>
+            }
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+
+@code {
+    [Inject]
+    private ICurrentUserService _userService { get; set; }
+
+    [Inject]
+    private NavigationManager _navigation { get; set; }
+
+    [Inject]
+    private JwtAuthStateProvider _authProvider { get; set; }
+
+    private bool IsAuthenticated { get; set; } = false;
+    private string Name { get; set; } = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await UpdateUserStateAsync();
+
+        _authProvider.AuthenticationStateChanged += OnAuthStateChanged;
+    }
+
+    private async void OnAuthStateChanged(Task<AuthenticationState> task)
+    {
+        await UpdateUserStateAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task UpdateUserStateAsync()
+    {
+        IsAuthenticated = await _userService.GetUserAuthenticaticationStatus();
+        if (IsAuthenticated)
+        {
+            Name = await _userService.GetUserNameAsync();
+        }
+        else
+        {
+            Name = string.Empty;
+        }
+    }
+
+    private async Task Logout()
+    {
+        await _authProvider.MarkUserAsLoggedOutAsync();
+        _navigation.NavigateTo("/");
+    }
+
+    private void Login()
+    {
+        _navigation.NavigateTo("/login");
+    }
+}
