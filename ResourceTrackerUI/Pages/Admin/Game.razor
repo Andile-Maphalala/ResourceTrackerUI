@@ -1,0 +1,15 @@
+﻿@page "/admin/game"
+@using Microsoft.AspNetCore.Authorization
+@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Components.CustomComponents
+@using ResourceTrackerUI.Domain.Models.Common
+@using ResourceTrackerUI.Domain.Models.Feature.Query
+@attribute [Authorize(Roles = "Administrator")]
+
+<h3>Game</h3>
+
+<MudPaper Class="p-4">
+    <RTTable @ref="tableRef" TItem="SearchGamesResponseModel" OnAction="Actions" LoadData="LoadData" ShowAllActionsExceptBulk="true" />
+</MudPaper>
+
+

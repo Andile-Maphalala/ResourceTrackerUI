@@ -4,7 +4,7 @@ using Microsoft.JSInterop;
 using ResourceTrackerUI.Application.Interfaces;
 using System.Text.Json;
 
-namespace ResourceTrackerUI.Application.Services
+namespace ResourceTrackerUI.Application.Services.Common
 {
     public class LocalStorageService : ILocalStorageService
     {
