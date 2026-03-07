@@ -1,5 +1,4 @@
-﻿
-namespace ResourceTrackerUI.Domain.Models
+﻿namespace ResourceTrackerUI.Domain.Models.Auth
 {
     public class AuthResponseModel
     {

@@ -1,6 +1,6 @@
 ﻿using ResourceTrackerUI.ApiClient;
 using ResourceTrackerUI.Application.Interfaces;
-using ResourceTrackerUI.Domain.Models;
+using ResourceTrackerUI.Domain.Models.Auth;
 
 namespace ResourceTrackerUI.Application.Services.Auth
 {

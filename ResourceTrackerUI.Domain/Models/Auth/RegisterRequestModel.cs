@@ -1,8 +1,6 @@
-﻿
+﻿using System.ComponentModel.DataAnnotations;
 
-using System.ComponentModel.DataAnnotations;
-
-namespace ResourceTrackerUI.Domain.Models
+namespace ResourceTrackerUI.Domain.Models.Auth
 {
     public class RegisterRequestModel
     {

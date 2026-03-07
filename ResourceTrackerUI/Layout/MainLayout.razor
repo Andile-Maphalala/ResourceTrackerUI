@@ -2,17 +2,39 @@
 @using ResourceTrackerUI.Application.Interfaces
 @using ResourceTrackerUI.Application.Services.Auth
 @inherits LayoutComponentBase
+
+@* Required *@
+<MudThemeProvider />
+<MudPopoverProvider />
+
+@* Needed for dialogs *@
+<MudDialogProvider />
+
+@* Needed for snackbars *@
+<MudSnackbarProvider />
+
 <div class="page">
     <div class="sidebar">
-        <NavMenu />
+        <NavMenu IsAuthenticated="IsAuthenticated" />
     </div>
 
     <main>
         <div class="top-row px-4">
             @if (IsAuthenticated)
             {
-                <span>Hello, @Name</span>         
-                <button @onclick="Logout">Sign Out</button>
+                <span>Hello, @Name    </span>         
+                <MudMenu>
+                    <ActivatorContent>
+                        <div @onclick="@context.ToggleAsync" style="cursor: pointer">
+                            <MudAvatar>
+                                <MudIcon Icon="@Icons.Material.Filled.SupervisedUserCircle" />
+                            </MudAvatar>
+                        </div>
+                    </ActivatorContent>
+                    <ChildContent>
+                        <MudMenuItem Label="Logout" OnClick="Logout"/>
+                    </ChildContent>
+                </MudMenu>
 
             }
             else

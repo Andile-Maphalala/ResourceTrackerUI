@@ -1,4 +1,4 @@
-﻿using ResourceTrackerUI.Domain.Models;
+﻿using ResourceTrackerUI.Domain.Models.Auth;
 
 
 namespace ResourceTrackerUI.Application.Interfaces

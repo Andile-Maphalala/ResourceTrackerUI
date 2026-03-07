@@ -1,9 +1,10 @@
 ﻿@page "/login"
 
+@using System.Text.Json
 @using ResourceTrackerUI.Application.Interfaces
 @using ResourceTrackerUI.Application.Services.Auth
 @using ResourceTrackerUI.Domain.Models
-@using System.Text.Json
+@using ResourceTrackerUI.Domain.Models.Auth
 
 <h3>Login</h3>
 <EditForm Model="model" OnValidSubmit="Submit" FormName="LoginForm">

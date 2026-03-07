@@ -1,33 +1,26 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">ResourceTrackerUI</a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-    </div>
-</div>
+﻿
+<MudPaper Width="250px" Class="d-inline-flex py-3" Elevation="0">
+    <MudNavMenu Class="mud-width-full" Rounded="true" Margin="Margin.Dense" Color="Color.Primary">
+        <MudText Typo="Typo.h6" Class="px-4">Resource Tracker</MudText>
+        <MudText Typo="Typo.body2" Class="px-4 mud-text-secondary">Welcome</MudText>
+        <MudDivider Class="my-2" />
+        <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
+        @if(IsAuthenticated)
+        {
+            <MudNavGroup Title="Admin" Icon="@Icons.Material.Filled.Settings" Expanded="true">
+                <MudNavLink Href="/admin/game" Icon="@Icons.Material.Filled.Games" IconColor="Color.Success">Game</MudNavLink>
+                <MudNavLink Href="/admin/component" Icon="@Icons.Material.Filled.PrecisionManufacturing" IconColor="Color.Info">Components</MudNavLink>
+                <MudNavLink Href="/admin/recipe" Icon="@Icons.Material.Filled.Science" IconColor="Color.Info">Recipes</MudNavLink>
+            </MudNavGroup>
+        }
 
-<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-            </NavLink>
-        </div>
-    </nav>
-</div>
-
+    </MudNavMenu>
+</MudPaper>
 @code {
+
+    [Parameter]
+    public bool IsAuthenticated { get; set; }
+
     private bool collapseNavMenu = true;
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
