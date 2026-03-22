@@ -3,24 +3,38 @@
 @typeparam TModel
 
 <MudCard>
-    <MudForm @ref="Form" Model="Model" Disabled="DisableInputs" @onsubmit="Submit">
+    <MudForm @ref="Form" Model="Model" Disabled="DisableInputs || IsSubmitting" @onsubmit="Submit">
         @if (FormMode == FormModeEnum.Delete)
         {
-            <MudAlert Severity="Severity.Error" Variant="Variant.Filled">Are you sure you want to delete the following Data</MudAlert>
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+                Are you sure you want to delete the following Data
+            </MudAlert>
         }
+
         <MudCardContent>
             @ChildContent
         </MudCardContent>
     </MudForm>
+
     <MudCardActions Class="d-flex justify-end gap-2">
-        <MudButton OnClick="Cancel" Variant="Variant.Filled" Color="Color.Primary">Cancel</MudButton>
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="IsSubmitting">
+            Cancel
+        </MudButton>
+
         @if (FormMode != FormModeEnum.View)
         {
-            <MudButton OnClick="Submit" Variant="Variant.Filled" Color="@ButtonColor">@ButtonDescription</MudButton>
+            <MudButton OnClick="Submit"
+                       Variant="Variant.Filled"
+                       Color="@ButtonColor"
+                       Loading="IsSubmitting">
+                @ButtonDescription
+            </MudButton>
         }
     </MudCardActions>
 </MudCard>
-
 
 @code {
     [Parameter]
@@ -45,6 +59,9 @@
 
     private string ButtonDescription { get; set; } = "Submit";
     private Color ButtonColor { get; set; } = Color.Primary;
+
+    private bool IsSubmitting { get; set; }
+
     protected override void OnInitialized()
     {
         if (FormMode == FormModeEnum.View)
@@ -59,6 +76,7 @@
                 ButtonColor = Color.Error;
                 DisableInputs = true;
                 break;
+
             case FormModeEnum.View:
                 DisableInputs = true;
                 break;
@@ -67,13 +85,23 @@
 
     private async Task Submit()
     {
-        if (Form is not null)
+        if (Form is null)
+            return;
+
+        await Form.ValidateAsync();
+
+        if (!Form.IsValid)
+            return;
+
+        try
         {
-            await Form.Validate();
-            if (Form.IsValid)
-            {
-                await OnSubmit.InvokeAsync(Model);
-            }
+            IsSubmitting = true;
+
+            await OnSubmit.InvokeAsync(Model);
+        }
+        finally
+        {
+            IsSubmitting = false;
         }
     }
 

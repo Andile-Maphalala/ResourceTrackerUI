@@ -862,6 +862,66 @@
                   },
                   "AltText": {
                     "type": "string"
+                  }
+                }
+              },
+              "encoding": {
+                "Name": {
+                  "style": "form"
+                },
+                "Description": {
+                  "style": "form"
+                },
+                "AltText": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateGameResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateGameResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateGameResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Game/CreateGameWithImage": {
+      "post": {
+        "tags": [
+          "Game"
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "Name": {
+                    "type": "string"
+                  },
+                  "Description": {
+                    "type": "string"
+                  },
+                  "AltText": {
+                    "type": "string"
                   },
                   "Image": {
                     "type": "string",
@@ -892,17 +952,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/CreateGameResponse"
+                  "$ref": "#/components/schemas/CreateGameWithImageResponse"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CreateGameResponse"
+                  "$ref": "#/components/schemas/CreateGameWithImageResponse"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CreateGameResponse"
+                  "$ref": "#/components/schemas/CreateGameWithImageResponse"
                 }
               }
             }
@@ -1485,6 +1545,53 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetPictureResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Picture/GetPictureList": {
+      "get": {
+        "tags": [
+          "Picture"
+        ],
+        "parameters": [
+          {
+            "name": "ImageUploadType",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ImageUploadTypeEnum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GetPictureListResponse"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GetPictureListResponse"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GetPictureListResponse"
+                  }
                 }
               }
             }
@@ -2371,6 +2478,16 @@
         },
         "additionalProperties": false
       },
+      "CreateGameWithImageResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "CreatePictureResponse": {
         "type": "object",
         "properties": {
@@ -2658,6 +2775,41 @@
         },
         "additionalProperties": false
       },
+      "GetPictureListResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "altText": {
+            "type": "string",
+            "nullable": true
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "imageUploadType": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "imageUploadTypeName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "GetPictureResponse": {
         "type": "object",
         "properties": {
@@ -2678,6 +2830,15 @@
             "format": "int64"
           },
           "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "imageUploadType": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "imageUploadTypeName": {
             "type": "string",
             "nullable": true
           }

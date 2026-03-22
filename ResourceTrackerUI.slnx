@@ -6,6 +6,9 @@
   <Folder Name="/Infrastructure/">
     <Project Path="ResourceTrackerUI.ApiClient/ResourceTrackerUI.ApiClient.csproj" />
   </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="readme.md" />
+  </Folder>
   <Folder Name="/UI/">
     <Project Path="ResourceTrackerUI/ResourceTrackerUI.csproj" Id="8b1dba9c-7919-4671-b605-1277ea50f6ab" />
   </Folder>

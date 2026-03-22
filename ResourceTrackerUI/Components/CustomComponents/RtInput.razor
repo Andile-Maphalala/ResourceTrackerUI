@@ -1,0 +1,68 @@
+﻿@using System.Linq.Expressions
+@using System.Reflection
+@using System.ComponentModel.DataAnnotations
+@using System.ComponentModel
+@using ResourceTrackerUI.Domain.Attributes
+
+@typeparam T
+@inherits MudTextField<T>
+
+<MudTextField T="T"
+              Value="this.Value"
+              ValueChanged="@this.ValueChanged"
+              Label="@this.Label"
+              Required="@this.Required"
+              Variant="@this.Variant"
+              Disabled="@this.Disabled"
+              Lines="@this.Lines"
+              MaxLines="@this.MaxLines"
+              Counter="@this.Counter" 
+              Margin="Margin.Dense"
+              Adornment="this.Adornment"
+              AdornmentIcon="@this.AdornmentIcon"
+              AdornmentColor="@this.AdornmentColor"
+              AdornmentText="@this.AdornmentText"
+              OnAdornmentClick="this.OnAdornmentClick"
+              InputMode="this.InputMode"
+              InputType="this.InputType"
+              ReadOnly="this.ReadOnly"
+              Clearable="this.Clearable"
+              Class="@this.Class"
+              RequiredError="@this.RequiredError"
+              Validation="this.Validation"
+              OnlyValidateIfDirty=this.OnlyValidateIfDirty
+              ShrinkLabel=true Mask="this.Mask"
+              Immediate="this.Immediate"
+              OnBlur="this.OnBlur" />
+
+@code {
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (For == null)
+            return;
+
+        var member = (For.Body as MemberExpression)?.Member;
+
+        if (member == null)
+            return;
+
+        var attr = member.GetCustomAttribute<FormFieldAttribute>();
+
+        this.Required = GetIsRequired();
+        this.Label = attr?.DisplayName ?? member.Name;
+        this.Placeholder = attr?.Placeholder;
+    }
+
+    private bool GetIsRequired()
+    {
+        if (For == null)
+            return false;
+        var member = (For.Body as MemberExpression)?.Member;
+        if (member == null)
+            return false;
+        var requiredAttr = member.GetCustomAttribute<RequiredAttribute>();
+        return requiredAttr != null;
+    }
+}

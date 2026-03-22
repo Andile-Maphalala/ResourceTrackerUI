@@ -29,7 +29,7 @@ namespace ResourceTrackerUI
             .AddHttpMessageHandler<AuthHeaderHandler>();
 
             //Services
-            builder.Services.AddApiClientServices();
+            builder.Services.AddApiClientServices(apiBaseUrl);
             builder.Services.AddAppServices();
 
             //Authentication

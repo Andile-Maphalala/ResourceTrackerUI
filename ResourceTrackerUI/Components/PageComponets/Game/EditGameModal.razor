@@ -1,0 +1,135 @@
+﻿@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Components.CustomComponents
+@using ResourceTrackerUI.Domain.Enums
+@using ResourceTrackerUI.Domain.Models.Feature
+@using System.Text.Json
+
+
+<RtForm TModel="GameModel" Model="Model" FormMode="FormMode" OnSubmit="Submit" OnCancel="Cancel">
+    <MudGrid>
+        <MudItem xs="12" sm="6">
+            <RtInput @bind-Value="Model.Name" For="@(() => Model.Name)"/>
+            <RtInput @bind-Value="Model.AltText"
+                          For="@(() => Model.AltText)"
+                          Disabled = "@(FormMode != FormModeEnum.Create)"/>
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <RtInput @bind-Value="Model.Description"
+                          For="@(() => Model.Description)"
+                          Counter="225"
+                          MaxLines="10"
+                          Lines="5" 
+                          /> 
+        </MudItem>
+
+        <MudItem xs="12" sm="12">
+            <MudGrid>
+                <MudItem xs="12" sm="9">
+                    @if (FormMode == FormModeEnum.Create)
+                    {
+                        <MudImage Src="@Base64"
+                                  Alt="@Model.AltText"
+                                  Height="400"
+                                  Width="400"
+                                  Elevation="25"
+                                  Class="rounded-lg"
+                                  ObjectFit="@ObjectFit.ScaleDown" />
+                    }
+                    else if (!string.IsNullOrEmpty(Model.ImageUrl))
+                    {
+                        <MudImage Src="@Model.ImageUrl"
+                                  Alt="@Model.AltText"
+                                  Height="400"
+                                  Width="400"
+                                  Elevation="25"
+                                  Class="rounded-lg"
+                                  ObjectFit="@ObjectFit.ScaleDown" />
+                    }
+
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    @if (FormMode == FormModeEnum.Create)
+                    {
+                        <MudFileUpload @bind-Files="@Model.Image"
+                                       OnFilesChanged="@SwapPicture"
+                                       Accept=".jpg,.bmp,.tiff,.jpeg,.png">
+                        </MudFileUpload>
+                    }
+                   
+                </MudItem>
+            </MudGrid>
+        </MudItem>
+
+    </MudGrid>
+</RtForm>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+
+    [Inject]
+    private IGameService Service { get; set; }
+    [Inject]
+    private ISnackbar Snackbar { get; set; }
+
+    [Parameter]
+    public GameModel Model { get; set; } = new GameModel();
+    [Parameter]
+    public FormModeEnum FormMode { get; set; }
+
+    private bool Swapping { get; set; } = true;
+    private string Base64 { get; set; }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    private async Task Submit()
+    {
+        switch (FormMode)
+        {
+            case FormModeEnum.Create:
+                var result = await Service.CreateGame(Model, appCancellation.Token);
+                break;
+            case FormModeEnum.Update:
+                await Service.UpdateGame(Model, appCancellation.Token);
+                break;
+            case FormModeEnum.Delete:
+                await Service.DeleteGame(Model.Id, appCancellation.Token);
+                break;
+        }
+        
+        MudDialog.Close();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SwapPicture()
+    {
+        if (Model.Image == null)
+        {
+            Snackbar.Add("No file selected!", Severity.Warning);
+            return;
+        }
+        if (Model.Image.Size > 5242880)
+        {
+            Snackbar.Add("File size exceeds 5MB!", Severity.Error);
+            return;
+        }
+        Swapping = true;
+        StateHasChanged();
+        using var stream = Model.Image.OpenReadStream(5242880); // Limit to 5MB.
+        using var memoryStream = new MemoryStream();
+        await stream.CopyToAsync(memoryStream);
+        var fileBytes = memoryStream.ToArray();
+
+        // Update base64 string
+        Base64 = $"data:{Model.Image.ContentType};base64,{Convert.ToBase64String(fileBytes)}";
+        Snackbar.Add("Image updated successfully!", Severity.Success);
+
+        // Clear the file upload field
+        Swapping = false;
+    }
+}

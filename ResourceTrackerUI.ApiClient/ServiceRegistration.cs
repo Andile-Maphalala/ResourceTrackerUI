@@ -4,12 +4,12 @@ namespace ResourceTrackerUI.ApiClient
 {
     public static class ServiceRegistration
     {
-        public static void AddApiClientServices(this IServiceCollection services)
+        public static void AddApiClientServices(this IServiceCollection services, string baseUrl)
         {
             services.AddScoped(sp =>
             {
                 var factory = sp.GetRequiredService<IHttpClientFactory>();
-                return new ResourceTrackerApiClient(factory.CreateClient("ApiClient"));
+                return new ResourceTrackerApiClient(baseUrl,factory.CreateClient("ApiClient"));
             });
         }
     }

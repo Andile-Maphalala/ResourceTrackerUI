@@ -11,10 +11,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <OpenApiReference Include="defenition\swagger.json" Options="/operationGenerationMode:SingleClientFromPathSegments /useBaseUrl:false /dateType:DateTime /dateTimeType:DateTime /excludedTypeNames:ValidationResult,DataTypeEnum,TimeSpan" ClassName="ResourceTrackerApiClient" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Cookies" Version="2.3.9" />
     <PackageReference Include="Microsoft.Extensions.ApiDescription.Client" Version="7.0.2">
       <PrivateAssets>all</PrivateAssets>

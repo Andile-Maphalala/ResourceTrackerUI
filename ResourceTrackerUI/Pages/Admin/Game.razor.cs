@@ -5,7 +5,7 @@ using ResourceTrackerUI.Components.CustomComponents;
 using ResourceTrackerUI.Components.PageComponets.Game;
 using ResourceTrackerUI.Domain.Common;
 using ResourceTrackerUI.Domain.Enums;
-using ResourceTrackerUI.Domain.Models.Feature.Command;
+using ResourceTrackerUI.Domain.Models.Feature;
 using ResourceTrackerUI.Domain.Models.Feature.Query;
 
 namespace ResourceTrackerUI.Pages.Admin
@@ -17,7 +17,7 @@ namespace ResourceTrackerUI.Pages.Admin
         [Inject]
         private IDialogService dialogService { get; set; }
 
-        private RTTable<SearchGamesResponseModel> tableRef;
+        private RtTable<SearchGamesResponseModel> tableRef;
         private SearchGamesQueryModel Model { get; set; }
 
 
@@ -38,19 +38,30 @@ namespace ResourceTrackerUI.Pages.Admin
 
         private async Task Actions(ActionModel<SearchGamesResponseModel> item)
         {
-
-
             IDialogReference dialog;
-
-            var options = new DialogOptions { CloseOnEscapeKey = true, FullWidth = true };
-            var model = new CreateGameCommandModel();
-            var parameters = new DialogParameters<CreateGameModal>
+            var model = new GameModel();
+            switch (item.Mode)
             {
-                { x => x.FormMode, FormModeEnum.Create},
+                case FormModeEnum.Create:
+                    item.Item = new SearchGamesResponseModel();
+                    break;
+                case FormModeEnum.Update:
+                case FormModeEnum.View:
+                case FormModeEnum.Delete:
+                    model = await Service.GetGame(item.Item.Id,appCancellation.Token);
+                    break;
+                default:
+                    return;
+            }
+            var options = new DialogOptions { CloseOnEscapeKey = true, FullWidth = true };
+           
+            var parameters = new DialogParameters<EditGameModal>
+            {
+                { x => x.FormMode, item.Mode},
                 { x => x.Model, model }
             };
 
-            dialog = await dialogService.ShowAsync<CreateGameModal>(item.Mode.ToString(), parameters, options);
+            dialog = await dialogService.ShowAsync<EditGameModal>(item.Mode.ToString(), parameters, options);
 
             var result = await dialog.Result;
 

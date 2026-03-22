@@ -3,7 +3,7 @@ using MapsterMapper;
 using ResourceTrackerUI.ApiClient;
 using ResourceTrackerUI.Application.Interfaces;
 using ResourceTrackerUI.Domain.Models.Common;
-using ResourceTrackerUI.Domain.Models.Feature.Command;
+using ResourceTrackerUI.Domain.Models.Feature;
 using ResourceTrackerUI.Domain.Models.Feature.Query;
 
 namespace ResourceTrackerUI.Application.Services
@@ -19,16 +19,26 @@ namespace ResourceTrackerUI.Application.Services
             _mapper = mapper;
         }
 
-        public async Task<int> CreateGame(CreateGameCommandModel model, CancellationToken cancellationToken)
+        public async Task<int> CreateGame(GameModel model, CancellationToken cancellationToken)
         {
-            var fileparam = new FileParameter(model.Image.OpenReadStream(), model.Image.Name, model.Image.ContentType);
-            var response = await _apiClient.ApiGameCreateGameAsync(model.Name,model.Description,model.AltText, fileparam, cancellationToken);
-            return response.Id;
+            if (model.Image != null)
+            {
+                var fileparam = new FileParameter(model.Image.OpenReadStream(), model.Image.Name, model.Image.ContentType);
+                var response = await _apiClient.ApiGameCreateGameWithImageAsync(model.Name, model.Description, model.AltText, fileparam, cancellationToken);
+                return response.Id;
+
+            }
+            else
+            {
+                var response = await _apiClient.ApiGameCreateGameAsync(model.Name, model.Description, model.AltText, cancellationToken);
+                return response.Id;
+            }
+
         }
 
-        public async Task UpdateGame(UpdateGameCommandModel model, CancellationToken cancellationToken)
+        public async Task UpdateGame(GameModel model, CancellationToken cancellationToken)
         {
-            var dto = _mapper.Map<UpdateGameCommandModel, UpdateGameCommand>(model);
+            var dto = _mapper.Map<GameModel, UpdateGameCommand>(model);
             await _apiClient.ApiGameUpdateGameAsync(dto, cancellationToken);
         }
 
@@ -37,10 +47,10 @@ namespace ResourceTrackerUI.Application.Services
             await _apiClient.ApiGameDeleteGameAsync(id, cancellationToken);
         }
 
-        public async Task<GetGameResponseModel> GetGame(int Id, CancellationToken cancellationToken)
+        public async Task<GameModel> GetGame(int Id, CancellationToken cancellationToken)
         {
            var response = await _apiClient.ApiGameGetGameAsync(Id, cancellationToken);
-           var model = _mapper.Map<GetGameResponse, GetGameResponseModel>(response);
+           var model = _mapper.Map<GetGameResponse, GameModel>(response);
            return model;
         }
 
