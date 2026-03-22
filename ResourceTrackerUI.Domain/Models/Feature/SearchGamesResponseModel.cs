@@ -1,5 +1,4 @@
-﻿
-namespace ResourceTrackerUI.Domain.Models.Feature.Query
+﻿namespace ResourceTrackerUI.Domain.Models.Feature
 {
     public class SearchGamesResponseModel
     {

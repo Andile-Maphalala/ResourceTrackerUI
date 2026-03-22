@@ -4,7 +4,6 @@ using ResourceTrackerUI.ApiClient;
 using ResourceTrackerUI.Application.Interfaces;
 using ResourceTrackerUI.Domain.Models.Common;
 using ResourceTrackerUI.Domain.Models.Feature;
-using ResourceTrackerUI.Domain.Models.Feature.Query;
 
 namespace ResourceTrackerUI.Application.Services
 {

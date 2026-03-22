@@ -1,6 +1,6 @@
 ﻿using ResourceTrackerUI.Domain.Models.Common;
 
-namespace ResourceTrackerUI.Domain.Models.Feature.Query
+namespace ResourceTrackerUI.Domain.Models.Feature
 {
     public class SearchGamesQueryModel : PageableRequestModel
     {

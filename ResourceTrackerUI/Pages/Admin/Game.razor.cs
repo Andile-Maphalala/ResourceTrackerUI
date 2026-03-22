@@ -6,7 +6,6 @@ using ResourceTrackerUI.Components.PageComponets.Game;
 using ResourceTrackerUI.Domain.Common;
 using ResourceTrackerUI.Domain.Enums;
 using ResourceTrackerUI.Domain.Models.Feature;
-using ResourceTrackerUI.Domain.Models.Feature.Query;
 
 namespace ResourceTrackerUI.Pages.Admin
 {
