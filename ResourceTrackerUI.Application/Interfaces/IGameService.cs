@@ -1,6 +1,6 @@
 ﻿
 using ResourceTrackerUI.Domain.Models.Common;
-using ResourceTrackerUI.Domain.Models.Feature;
+using ResourceTrackerUI.Domain.Models.Feature.Game;
 
 namespace ResourceTrackerUI.Application.Interfaces
 {

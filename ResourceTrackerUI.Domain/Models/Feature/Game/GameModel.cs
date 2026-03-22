@@ -2,7 +2,7 @@
 using ResourceTrackerUI.Domain.Attributes;
 using System.ComponentModel.DataAnnotations;
 
-namespace ResourceTrackerUI.Domain.Models.Feature
+namespace ResourceTrackerUI.Domain.Models.Feature.Game
 {
     public class GameModel
     {

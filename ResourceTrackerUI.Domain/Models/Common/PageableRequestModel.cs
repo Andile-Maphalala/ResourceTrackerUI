@@ -23,6 +23,8 @@ namespace ResourceTrackerUI.Domain.Models.Common
         // Summary:
         //     Gets or sets the order direction. Default is ascending.
         public OrderDirectionEnum OrderDirection { get; set; } = OrderDirectionEnum.Ascending;
+
+        public string? SearchTerms { get; set; } = string.Empty;
     }
 }
 

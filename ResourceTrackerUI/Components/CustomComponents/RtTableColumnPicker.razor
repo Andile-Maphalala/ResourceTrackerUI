@@ -1,0 +1,103 @@
+﻿@using ResourceTrackerUI.Domain.Common
+<RtDialog >
+    <ChildContent>
+        <MudStack>
+            <MudText Typo="Typo.body2" Class="mb-3">
+                Select columns to display and reorder them by dragging.
+            </MudText>
+            <MudDropContainer T="ColumnDefinition" Items="AllColumns" ItemsSelector="@((item, dropzone) => ItemSelector(dropzone, item))" ItemDropped="ItemUpdated" Class="d-flex flex-wrap flex-grow-1">
+                <ChildContent>
+                    <MudDropZone T="ColumnDefinition" Identifier="true" Class="rounded mud-background-gray pa-6 ma-8 flex-grow-1" AllowReorder="true">
+                        <MudText Typo="Typo.h6" Class="mb-4">Visible Columns</MudText>
+                    </MudDropZone>
+                    <MudDropZone T="ColumnDefinition" Identifier="false" Class="rounded mud-background-gray pa-6 ma-8 flex-grow-1" AllowReorder="true">
+                        <MudText Typo="Typo.h6" Class="mb-4">Hidden Columns</MudText>
+                    </MudDropZone>
+                </ChildContent>
+                <ItemRenderer>
+                    <MudPaper Elevation="25" Class="pa-4 my-4">@context.DisplayName</MudPaper>
+                </ItemRenderer>
+            </MudDropContainer>
+            
+        </MudStack>
+    </ChildContent>
+    <ActionContent>
+        <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="ResetColumns">Reset</MudButton>
+        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="SaveColumnConfiguration">Save</MudButton>
+        <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="@(MudDialog.Cancel)">Cancel</MudButton>
+    </ActionContent>
+</RtDialog>
+
+@code {
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public List<ColumnDefinition> AllColumns { get; set; }
+
+    [Parameter]
+    public List<ColumnDefinition> DefaultColumns { get; set; }
+
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        var order = 0;
+        foreach (var column in AllColumns.OrderBy(x => x.Order))
+        {
+            var index = AllColumns.IndexOf(column);
+            column.Order = index;
+        }
+        AllColumns = AllColumns.OrderBy(x => x.Order).ToList();
+    }
+
+    private async Task SaveColumnConfiguration()
+    {
+        MudDialog.Close(DialogResult.Ok(AllColumns));
+    }
+
+    private async Task ResetColumns()
+    {
+        foreach (var column in AllColumns)
+        {
+            var defaultColumn = DefaultColumns.FirstOrDefault(c => c.PropertyInfo.Name == column.PropertyInfo.Name);
+
+            column.Visible = defaultColumn.Visible;
+            column.Order = defaultColumn.Order;
+        }
+    }
+
+
+    private void ItemUpdated(MudItemDropInfo<ColumnDefinition> dropItem)
+    {
+        var currentIndex = AllColumns.IndexOf(dropItem.Item);
+        AllColumns.RemoveAt(currentIndex);
+        if(bool.TryParse(dropItem.DropzoneIdentifier, out var isVisibleZone) && isVisibleZone)
+        {
+            dropItem.Item.Visible = true;
+        }
+        else
+        {
+            dropItem.Item.Visible = false;
+        }
+        dropItem.Item.Order = dropItem.IndexInZone;
+        AllColumns.Insert(dropItem.IndexInZone, dropItem.Item);
+        StateHasChanged();
+    }
+
+    private bool ItemSelector(string dropZone, ColumnDefinition column)
+    {
+        if (bool.TryParse(dropZone, out var isVisibleZone))
+        {
+            if (isVisibleZone == column.Visible)
+            {
+                return true;
+            }
+
+            return false;
+        }
+        return true;
+    }
+
+}
