@@ -5,7 +5,8 @@ using ResourceTrackerUI.Components.CustomComponents;
 using ResourceTrackerUI.Components.PageComponets.Game;
 using ResourceTrackerUI.Domain.Common;
 using ResourceTrackerUI.Domain.Enums;
-using ResourceTrackerUI.Domain.Models.Feature;
+using ResourceTrackerUI.Domain.Models.Common;
+using ResourceTrackerUI.Domain.Models.Feature.Game;
 
 namespace ResourceTrackerUI.Pages.Admin
 {
@@ -29,10 +30,16 @@ namespace ResourceTrackerUI.Pages.Admin
             };
         }
 
-        private async Task<List<SearchGamesResponseModel>> LoadData()
+        private async Task<PageableResponseModel<SearchGamesResponseModel>> LoadData(PageableRequestModel request)
         {
+            Model.PageNumber = request.PageNumber;
+            Model.PageSize = request.PageSize;
+            Model.SearchTerms = request.SearchTerms;
+            Model.OrderBy = request.OrderBy;
+            Model.OrderDirection = request.OrderDirection;
+
             var response = await Service.SearchGame(Model, appCancellation.Token);
-            return response.Data.ToList();
+            return response;
         }
 
         private async Task Actions(ActionModel<SearchGamesResponseModel> item)

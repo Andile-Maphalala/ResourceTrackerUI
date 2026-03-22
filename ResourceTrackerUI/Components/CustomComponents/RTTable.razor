@@ -3,23 +3,19 @@
 @using MudBlazor
 @using ResourceTrackerUI.Domain.Common
 @using ResourceTrackerUI.Domain.Enums
+@using ResourceTrackerUI.Domain.Models.Common
 
 @typeparam TItem
 
-@if (IsLoading)
-{
-    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
-}
-else
-{
-    <MudTable Items="Data"
+    <MudTable @ref="_table"
+              Items="Data.Data"
               Dense="Dense"
               Hover="Hover"
               Bordered="Bordered"
               Striped="Striped"
-              Filter="DynamicFilter">
+              ServerData="OnServerDataRequest">
         <HeaderContent>
-            @foreach (var column in VisibleColumns)
+            @foreach (var column in _visibleColumns)
             {
                 <MudTh>
                     @if (column.Sortable)
@@ -49,13 +45,13 @@ else
                     }
                 </MudItem>
                 <MudItem xs="12" sm="3">
-                    <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                    <RtInput T="string" ValueChanged="OnSearchChanged" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></RtInput>
                 </MudItem>
             </MudGrid>
 
         </ToolBarContent>
         <RowTemplate>
-            @foreach (var column in VisibleColumns)
+            @foreach (var column in _visibleColumns)
             {
                 <MudTd>
                     @if (!string.IsNullOrEmpty(column.FormatString))
@@ -68,11 +64,11 @@ else
                     }
                 </MudTd>
             }
-            @if (CrudColumn != null)
+            @if (_crudColumn != null)
             {
                 <MudTd Style="width:1%;">
                     <MudStack Row="true" Spacing="1">
-                        @foreach (var c in CrudColumn)
+                        @foreach (var c in _crudColumn)
                         {
                             @c(context)
                         }
@@ -82,16 +78,15 @@ else
             }
         </RowTemplate>
     </MudTable>
-}
 
 
 @code {
 
     [Parameter]
-    public Func<Task<List<TItem>>>? LoadData { get; set; }
+    public Func<PageableRequestModel, Task<PageableResponseModel<TItem>>>? LoadData { get; set; }
 
     [Parameter]
-    public IEnumerable<TItem>? Data { get; set; }
+    public PageableResponseModel<TItem>? Data { get; set; } = new PageableResponseModel<TItem>();
 
     [Parameter]
     public bool Dense { get; set; } = true;
@@ -117,28 +112,34 @@ else
     [Parameter]
     public EventCallback<ActionModel<TItem>> OnAction { get; set; }
 
+    [Parameter]
+    public int DefaultPageSize { get; set; } = 10;
 
-    private bool IsLoading { get; set; } = true;
 
-    private string searchString { get; set; } = string.Empty;
+    private bool _isLoading { get; set; } = true;
 
-    private List<PropertyInfo> SearchableProps = new();
-    private List<ColumnDefinition> VisibleColumns = new();
-    private List<RenderFragment<TItem>> CrudColumn { get; set; } = default!;
+    private string _searchString { get; set; } = string.Empty;
 
+    private List<PropertyInfo> _searchableProps = new();
+    private List<ColumnDefinition> _visibleColumns = new();
+    private List<RenderFragment<TItem>> _crudColumn { get; set; } = default!;
+    private int _currentPageNumber = 1;
+    private int _pageSize = 10;
+    private int _totalPages = 1;
+    private int _totalRecords = 0;
+    private MudTable<TItem>? _table;
 
     protected override async Task OnInitializedAsync()
     {
-
-        await RefreshTable();
-        VisibleColumns = typeof(TItem)
+        _pageSize = DefaultPageSize;
+        _visibleColumns = typeof(TItem)
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Select(p => new ColumnDefinition(p))
             .Where(c => c.Visible)
             .OrderBy(c => c.Order)
             .ToList();
 
-        SearchableProps = VisibleColumns
+        _searchableProps = _visibleColumns
             .Where(c =>
                 c.PropertyInfo.PropertyType.IsPrimitive ||
                 c.PropertyInfo.PropertyType == typeof(string) ||
@@ -168,50 +169,99 @@ else
         }
 
         AddCrudColumnButtons();
-        IsLoading = false;
 
+        _isLoading = false;
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+        }
+    }
+
+
+    private async Task<TableData<TItem>> OnServerDataRequest(TableState state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            _isLoading = true;
+
+            var request = new PageableRequestModel
+            {
+                PageNumber = state.Page + 1,
+                PageSize = state.PageSize,
+                SearchTerms = _searchString,
+                OrderBy = state.SortLabel ?? "Id",
+                OrderDirection = state.SortDirection == SortDirection.Ascending
+                    ? OrderDirectionEnum.Ascending
+                    : OrderDirectionEnum.Descending
+            };
+
+            if (LoadData != null)
+            {
+                var response = await LoadData.Invoke(request);
+                Data = response;
+
+                _currentPageNumber = response.PageNumber;
+                _pageSize = response.PageSize;
+                _totalPages = response.PageCount;
+                _totalRecords = response.TotalRecords;
+
+                return new TableData<TItem>
+                {
+                    Items = response.Data,
+                    TotalItems = response.TotalRecords
+                };
+            }
+
+            return new TableData<TItem>
+            {
+                Items = new List<TItem>(),
+                TotalItems = 0
+            };
+        }
+        catch (Exception ex)
+        {
+            return new TableData<TItem>
+            {
+                Items = new List<TItem>(),
+                TotalItems = 0
+            };
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnPageChanged(int pageNumber)
+    {
+        _currentPageNumber = pageNumber;
+        if (_table != null)
+        {
+            await _table.ReloadServerData();
+        }
     }
 
     public async Task RefreshTable()
     {
-        if (LoadData != null)
+        if (_table != null)
         {
-            try
-            {
-                IsLoading = true;
-                Data = await LoadData.Invoke();
-            }
-            catch (Exception ex)
-            {
-
-            }
-            finally
-            {
-                IsLoading = false;
-            }
+            await _table.ReloadServerData();
         }
-
-        await InvokeAsync(StateHasChanged);
     }
 
-    private bool DynamicFilter(TItem item)
+
+    private async Task OnSearchChanged(string Value)
     {
-        if (string.IsNullOrWhiteSpace(searchString))
-            return true;
-
-        var search = searchString.Trim();
-
-        foreach (var prop in SearchableProps)
+        _searchString = Value;
+        if (_table != null)
         {
-            var value = prop.GetValue(item)?.ToString();
-            if (!string.IsNullOrEmpty(value) &&
-                value.Contains(search, StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
+            await _table.ReloadServerData();
         }
-
-        return false;
     }
 
     private async Task Add()
@@ -275,7 +325,7 @@ else
                 builder.CloseComponent();
             });
         }
-        CrudColumn = crudColumns;
+        _crudColumn = crudColumns;
 
     }
 
