@@ -5,7 +5,7 @@ using ResourceTrackerUI.Application.Interfaces;
 using ResourceTrackerUI.Domain.Models.Common;
 using ResourceTrackerUI.Domain.Models.Feature.Game;
 
-namespace ResourceTrackerUI.Application.Services
+namespace ResourceTrackerUI.Application.Services.Feature
 {
     public class GameService : IGameService
     {

@@ -3,9 +3,9 @@ using MapsterMapper;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using ResourceTrackerUI.Application.Interfaces;
-using ResourceTrackerUI.Application.Services;
 using ResourceTrackerUI.Application.Services.Auth;
 using ResourceTrackerUI.Application.Services.Common;
+using ResourceTrackerUI.Application.Services.Feature;
 using System.Reflection;
 
 namespace ResourceTrackerUI.Application
@@ -27,6 +27,7 @@ namespace ResourceTrackerUI.Application
             services.AddScoped<ICurrentUserService, CurrentUserService>();
 
             services.AddScoped<IGameService, GameService>();
+            services.AddScoped<IComponentService, ComponentService>();
 
         }
 
