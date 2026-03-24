@@ -10,7 +10,7 @@ using ResourceTrackerUI.Domain.Models.Feature.Game;
 
 namespace ResourceTrackerUI.Pages.Admin
 {
-    public partial class Game
+    public partial class Games
     {
         [Inject]
         private IGameService Service { get; set; }
