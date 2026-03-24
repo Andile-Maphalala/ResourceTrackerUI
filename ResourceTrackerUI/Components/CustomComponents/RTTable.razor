@@ -9,6 +9,26 @@
 
 @typeparam TItem
 
+@if (HasAdvancedSearch)
+{
+    <MudCollapse Expanded="@IsAdvancedSearchExpanded">
+        <MudCard Class="mb-4 advanced-search-panel">
+            <MudCardContent>
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.h6" Class="mb-3">Advanced Search</MudText>
+                    </MudItem>
+                    @if (AdvancedSearchContent != null)
+                    {
+                        <MudItem xs="12">
+                            @AdvancedSearchContent
+                        </MudItem>
+                    }
+                </MudGrid>
+            </MudCardContent>
+        </MudCard>
+    </MudCollapse>
+}
     <MudTable @ref="_table"
               Items="Data.Data"
               Dense="Dense"
@@ -44,9 +64,10 @@
                 </MudTh>
             }
         </HeaderContent>
-        <ToolBarContent>
-            <MudGrid>
-                <MudItem xs="12" sm="9">
+    <ToolBarContent>
+        <MudGrid>
+            <MudItem xs="12" sm="6" md="4">
+                <MudStack Row="true" Spacing="1">
                     @if (ShouldShowAction(FormModeEnum.Create))
                     {
                         <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="Color.Tertiary" OnClick="Add">Add</MudButton>
@@ -55,31 +76,46 @@
                     {
                         <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="Color.Tertiary" OnClick="BulkAdd">Bulk Add</MudButton>
                     }
-                </MudItem>
-                <MudItem xs="12" sm="3">
-                    <MudGrid>
-                        <MudItem xs="12" sm="8">
-                            <RtInput T="string" ValueChanged="OnSearchChanged" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium"></RtInput>
+                </MudStack>
+            </MudItem>
 
-                            </MudItem>
+            <MudItem xs="12" sm="6" md="8">
+                <MudStack Row="true" Justify="Justify.FlexEnd" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudItem>
+                        <RtInput T="string"
+                                 ValueChanged="OnSearchChanged"
+                                 Placeholder="Search"
+                                 Adornment="Adornment.Start"
+                                 AdornmentIcon="@Icons.Material.Filled.Search"
+                                 Size="Size.Small"
+                                 Style="width: 150px;" />
+                    </MudItem>
+
                     @if (EnableColumnSave)
-                            {
-                            <MudItem xs="12" sm="4">
-                                <MudButton Variant="Variant.Outlined"
-                                           StartIcon="@Icons.Material.Filled.ViewColumn"
-                                           Color="Color.Primary"
-                                           OnClick="OpenColumnChooser"
-                                           Size="Size.Small">
-                                    Columns
-                                </MudButton>
-                            </MudItem>
-                            }
-                      
-                    </MudGrid>
-                </MudItem>
-            </MudGrid>
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                   StartIcon="@Icons.Material.Filled.ViewColumn"
+                                   Color="Color.Primary"
+                                   OnClick="OpenColumnChooser"
+                                   Size="Size.Small">
+                            Columns
+                        </MudButton>
+                    }
 
-        </ToolBarContent>
+                    @if (HasAdvancedSearch)
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                   StartIcon="@Icons.Material.Filled.FilterList"
+                                   Color="@(IsAdvancedSearchExpanded ? Color.Primary : Color.Default)"
+                                   OnClick="ToggleAdvancedSearch"
+                                   Size="Size.Small">
+                            @(IsAdvancedSearchExpanded ? "Hide Filters" : "Filters")
+                        </MudButton>
+                    }
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </ToolBarContent>
         <RowTemplate>
             @foreach (var column in _visibleColumns)
             {
@@ -130,6 +166,12 @@
 
     [Parameter]
     public PageableResponseModel<TItem>? Data { get; set; } = new PageableResponseModel<TItem>();
+
+    [Parameter]
+    public RenderFragment? AdvancedSearchContent { get; set; }
+
+    [Parameter]
+    public bool HasAdvancedSearch { get; set; } = true;
 
     [Parameter]
     public bool Dense { get; set; } = true;
@@ -186,7 +228,7 @@
     private List<ColumnDefinition> _allDefaultColumns = new();
     private DialogOptions dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
 
-
+    private bool IsAdvancedSearchExpanded = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -510,6 +552,11 @@
             var configJson = JsonSerializer.Serialize(config);
             await localStorageService.SetItemAsync(ColumnStorageKey, configJson);
         }
+    }
+
+    private void ToggleAdvancedSearch()
+    {
+        IsAdvancedSearchExpanded = !IsAdvancedSearchExpanded;
     }
 
 }

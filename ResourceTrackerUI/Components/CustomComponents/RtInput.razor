@@ -1,22 +1,20 @@
 ﻿@using System.Linq.Expressions
-@using System.Reflection
 @using System.ComponentModel.DataAnnotations
-@using System.ComponentModel
+@using System.Reflection
 @using ResourceTrackerUI.Domain.Attributes
-
 @typeparam T
 @inherits MudTextField<T>
 
 <MudTextField T="T"
               Value="this.Value"
-              ValueChanged="@this.ValueChanged"
+              ValueChanged="@OnValueChangedHandler"
               Label="@this.Label"
               Required="@this.Required"
               Variant="@this.Variant"
               Disabled="@this.Disabled"
               Lines="@this.Lines"
               MaxLines="@this.MaxLines"
-              Counter="@this.Counter" 
+              Counter="@this.Counter"
               Margin="Margin.Dense"
               Adornment="this.Adornment"
               AdornmentIcon="@this.AdornmentIcon"
@@ -36,23 +34,33 @@
               OnBlur="this.OnBlur" />
 
 @code {
+    [Parameter]
+    public EventCallback<T> OnValueChangedData { get; set; }
+
+    [Parameter]
+    public EventCallback OnValueChanged { get; set; }
 
 
     protected override async Task OnInitializedAsync()
     {
-        if (For == null)
-            return;
+        if (For is not null)
+        {
+            var member = (For.Body as MemberExpression)?.Member;
 
-        var member = (For.Body as MemberExpression)?.Member;
+            if (member is not null)
+            {
+                var attr = member.GetCustomAttribute<FormFieldAttribute>();
 
-        if (member == null)
-            return;
+                Required = GetIsRequired();
+                Label = attr?.DisplayName ?? member.Name;
 
-        var attr = member.GetCustomAttribute<FormFieldAttribute>();
-
-        this.Required = GetIsRequired();
-        this.Label = attr?.DisplayName ?? member.Name;
-        this.Placeholder = attr?.Placeholder;
+                if (string.IsNullOrEmpty(Placeholder))
+                {
+                    Placeholder = attr?.Placeholder;
+                }
+            }
+        }
+        
     }
 
     private bool GetIsRequired()
@@ -65,4 +73,20 @@
         var requiredAttr = member.GetCustomAttribute<RequiredAttribute>();
         return requiredAttr != null;
     }
+
+    private async Task OnValueChangedHandler(T value)
+    {
+        Value = value;
+
+        await ValueChanged.InvokeAsync(value);
+        if (OnValueChanged.HasDelegate)
+        {
+            await OnValueChanged.InvokeAsync(value);
+        }
+        if (OnValueChangedData.HasDelegate)
+        {
+            await OnValueChangedData.InvokeAsync(value);
+        }
+    }
+
 }

@@ -10,7 +10,21 @@
 <h3>Game</h3>
 
 <MudPaper Class="p-4">
-    <RtTable @ref="tableRef" TItem="SearchGamesResponseModel" OnAction="Actions" LoadData="LoadData" ShowAllActionsExceptBulk="true" />
+    <RtTable @ref="tableRef" TItem="SearchGamesResponseModel" OnAction="Actions" LoadData="LoadData" ShowAllActionsExceptBulk="true" >
+        <AdvancedSearchContent>
+            <MudGrid>
+                <MudItem xs="6" sm="3">
+                    <RtInput @bind-Value="SearchModel.GameId" For="@(() => SearchModel.GameId)" OnValueChanged="OnSearchChange" />
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <RtInput @bind-Value="SearchModel.Name" For="@(() => SearchModel.Name)" OnValueChanged="OnSearchChange" />
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <RtInput @bind-Value="SearchModel.Description" For="@(() => SearchModel.Description)" OnValueChanged="OnSearchChange" />
+                </MudItem>
+            </MudGrid>
+        </AdvancedSearchContent>
+    </RtTable>
 </MudPaper>
 
 

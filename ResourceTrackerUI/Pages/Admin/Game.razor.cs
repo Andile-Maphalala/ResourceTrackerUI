@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using ResourceTrackerUI.Application.Interfaces;
 using ResourceTrackerUI.Components.CustomComponents;
-using ResourceTrackerUI.Components.PageComponets.Game;
+using ResourceTrackerUI.Components.PageComponents.Admin;
 using ResourceTrackerUI.Domain.Common;
 using ResourceTrackerUI.Domain.Enums;
 using ResourceTrackerUI.Domain.Models.Common;
@@ -18,12 +18,12 @@ namespace ResourceTrackerUI.Pages.Admin
         private IDialogService dialogService { get; set; }
 
         private RtTable<SearchGamesResponseModel> tableRef;
-        private SearchGamesQueryModel Model { get; set; }
+        private SearchGamesQueryModel SearchModel { get; set; }
 
 
         protected override async Task OnInitializedAsync()
         {
-            Model = new SearchGamesQueryModel
+            SearchModel = new SearchGamesQueryModel
             {
                 OrderBy = "Id",
                 OrderDirection = OrderDirectionEnum.Descending
@@ -32,13 +32,13 @@ namespace ResourceTrackerUI.Pages.Admin
 
         private async Task<PageableResponseModel<SearchGamesResponseModel>> LoadData(PageableRequestModel request)
         {
-            Model.PageNumber = request.PageNumber;
-            Model.PageSize = request.PageSize;
-            Model.SearchTerms = request.SearchTerms;
-            Model.OrderBy = request.OrderBy;
-            Model.OrderDirection = request.OrderDirection;
+            SearchModel.PageNumber = request.PageNumber;
+            SearchModel.PageSize = request.PageSize;
+            SearchModel.SearchTerms = request.SearchTerms;
+            SearchModel.OrderBy = request.OrderBy;
+            SearchModel.OrderDirection = request.OrderDirection;
 
-            var response = await Service.SearchGame(Model, appCancellation.Token);
+            var response = await Service.SearchGame(SearchModel, appCancellation.Token);
             return response;
         }
 
@@ -75,6 +75,11 @@ namespace ResourceTrackerUI.Pages.Admin
             {
                 await tableRef?.RefreshTable();
             }
+        }
+
+        private async Task OnSearchChange()
+        {
+            await tableRef.RefreshTable();
         }
     }
 }
