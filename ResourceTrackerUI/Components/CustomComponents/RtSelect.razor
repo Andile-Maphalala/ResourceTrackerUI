@@ -1,0 +1,193 @@
+﻿@using System.Linq.Expressions
+@using ResourceTrackerUI.Domain.Attributes
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
+@using ResourceTrackerUI.Domain.Common
+
+
+@inherits MudSelect<T>
+@typeparam T
+
+<MudSelect T="T"
+           Value="@this.Value"
+           ValueChanged="OnValueChangedHandler"
+           SelectedValues="@this.SelectedValues"
+           SelectedValuesChanged="@this.SelectedValuesChanged"
+           Label="@this.Label"
+           For="@this.For"
+           Required="@this.Required"
+           Disabled="@this.Disabled"
+           Variant="@this.Variant"
+           Margin="@this.Margin"
+           Class="@this.Class"
+           Style="@this.Style"
+           Adornment="@this.Adornment"
+           AdornmentIcon="@this.AdornmentIcon"
+           AdornmentColor="@this.AdornmentColor"
+           AdornmentText="@this.AdornmentText"
+           OnAdornmentClick="@this.OnAdornmentClick"
+           Clearable="@this.Clearable"
+           ReadOnly="@this.ReadOnly"
+           Placeholder="@this.Placeholder"
+           HelperText="@this.HelperText"
+           Error="@this.Error"
+           ErrorText="@this.ErrorText"
+           Dense="@this.Dense"
+           FullWidth="@this.FullWidth"
+           @attributes="UserAttributes">
+
+    @if (_isLoading)
+    {
+        <MudSkeleton />
+    }
+    else
+    {
+        @foreach (var item in _dataList)
+        {
+            <MudSelectItem Value="@item.Value">
+                @if(EnableImages)
+                {
+                    <img src="@item.ImageUrl" height="20"/>
+                }
+                @item.Text
+                <MudDivider/>
+            </MudSelectItem>
+        }
+    }
+        
+</MudSelect>
+
+@code {
+    [Parameter]
+    public Func<Task<IEnumerable<object>>> LoadData { get; set; }
+
+    [Parameter]
+    public EventCallback<T> OnValueChangedData { get; set; }
+
+    [Parameter]
+    public EventCallback OnValueChanged { get; set; }
+
+    [Parameter]
+    public string ValueField { get; set; } = "Id";
+
+    [Parameter]
+    public string TextField { get; set; } = "Name";
+
+    [Parameter]
+    public string ImageField { get; set; } = "ImageUrl";
+
+    [Parameter]
+    public bool EnableImages { get; set; } = false;
+
+    private List<SelectListModel<T>> _dataList = new List<SelectListModel<T>>();
+    private bool _dataLoaded = false;
+    private bool _isLoading = false;
+
+    private async Task OnValueChangedHandler(T value)
+    {
+        Value = value;
+
+        if (ValueChanged.HasDelegate)
+        {
+            await ValueChanged.InvokeAsync(value);
+        }
+
+        if (OnValueChanged.HasDelegate)
+        {
+            await OnValueChanged.InvokeAsync(value);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (For != null)
+        {
+            var member = (For.Body as MemberExpression)?.Member;
+            if (member != null)
+            {
+                var attr = member.GetCustomAttribute<FormFieldAttribute>();
+
+                if (string.IsNullOrEmpty(Label))
+                {
+                    Label = attr?.DisplayName ?? member.Name;
+                }
+
+                if (string.IsNullOrEmpty(Placeholder))
+                {
+                    Placeholder = attr?.Placeholder;
+                }
+
+                Required = member.GetCustomAttribute<RequiredAttribute>() != null;
+            }
+        }
+
+        await base.OnInitializedAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+        if (!_dataLoaded && LoadData != null)
+        {
+            await LoadSelectData();
+        }
+    }
+
+    private async Task BuildDataList()
+    {
+        if (LoadData == null)
+            return;
+
+        var Data = await LoadData.Invoke();
+        _dataList = Data.Select(item => new SelectListModel<T>
+        {
+            Value = GetPropertyValue<T>(item,ValueField),
+            Text = GetPropertyValue<string>(item, TextField),
+            ImageUrl = GetPropertyValue<string>(item, ImageField)
+        }).ToList();
+    }
+
+
+    private TProperty GetPropertyValue<TProperty>(object item, string propertyName)
+    {
+        if (string.IsNullOrEmpty(propertyName))
+            return default;
+
+        var property = item.GetType().GetProperty(propertyName);
+        if (property == null)
+            return default;
+
+        var value = property.GetValue(item);
+
+        if (value == null)
+        {
+            return default;
+        }
+
+        return (TProperty)value;
+    }
+
+    private async Task LoadSelectData()
+    {
+        if (_isLoading) 
+            return;
+
+        _isLoading = true;
+        try
+        {
+            await BuildDataList();
+            _dataLoaded = true;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    public async Task RefreshData()
+    {
+        _dataLoaded = false;
+        await LoadSelectData();
+        StateHasChanged();
+    }
+}

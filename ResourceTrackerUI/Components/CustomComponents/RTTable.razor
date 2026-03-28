@@ -91,17 +91,6 @@
                                  Style="width: 150px;" />
                     </MudItem>
 
-                    @if (EnableColumnSave)
-                    {
-                        <MudButton Variant="Variant.Outlined"
-                                   StartIcon="@Icons.Material.Filled.ViewColumn"
-                                   Color="Color.Primary"
-                                   OnClick="OpenColumnChooser"
-                                   Size="Size.Small">
-                            Columns
-                        </MudButton>
-                    }
-
                     @if (HasAdvancedSearch)
                     {
                         <MudButton Variant="Variant.Outlined"
@@ -110,6 +99,16 @@
                                    OnClick="ToggleAdvancedSearch"
                                    Size="Size.Small">
                             @(IsAdvancedSearchExpanded ? "Hide Filters" : "Filters")
+                        </MudButton>
+                    }
+                    @if (EnableColumnSave)
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                   StartIcon="@Icons.Material.Filled.ViewColumn"
+                                   Color="Color.Primary"
+                                   OnClick="OpenColumnChooser"
+                                   Size="Size.Small">
+                            Columns
                         </MudButton>
                     }
                 </MudStack>
