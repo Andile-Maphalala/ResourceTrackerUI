@@ -1,16 +1,15 @@
-﻿@using System.Linq.Expressions
-@using ResourceTrackerUI.Domain.Attributes
+﻿@using ResourceTrackerUI.Domain.Attributes
+@using ResourceTrackerUI.Domain.Common
+@using System.Linq.Expressions
 @using System.ComponentModel.DataAnnotations
 @using System.Reflection
-@using ResourceTrackerUI.Domain.Common
-
-
 @inherits MudSelect<T>
 @typeparam T
 
 <MudSelect T="T"
            Value="@this.Value"
            ValueChanged="OnValueChangedHandler"
+           Text="@_displayText"
            SelectedValues="@this.SelectedValues"
            SelectedValuesChanged="@this.SelectedValuesChanged"
            Label="@this.Label"
@@ -34,8 +33,72 @@
            ErrorText="@this.ErrorText"
            Dense="@this.Dense"
            FullWidth="@this.FullWidth"
+           TextChanged="@this.TextChanged"
+           Pattern="@this.Pattern"
+           ToStringFunc="@this.ToStringFunc"
+           AdornmentAriaLabel="@this.AdornmentAriaLabel"
+           AnchorOrigin="@this.AnchorOrigin"
+           AutoFocus="@this.AutoFocus"
+           CheckedIcon="@this.CheckedIcon"
+           ClearIcon="@this.ClearIcon"
+           CloseIcon="@this.CloseIcon"
+           Comparer="@this.Comparer"
+           Converter="@this.Converter"
+           Counter="@this.Counter"
+           Culture="@this.Culture"
+           Delimiter="@this.Delimiter"
+           ErrorChanged="@this.ErrorChanged"
+           ErrorId="@this.ErrorId"
+           ErrorIdChanged="@this.ErrorIdChanged"
+           ErrorTextChanged="@this.ErrorTextChanged"
+           FitContent="@this.FitContent"
+           Format="@this.Format"
+           HelperId="@this.HelperId"
+           HelperTextOnFocus="@this.HelperTextOnFocus"
+           IconSize="@this.IconSize"
+           Immediate="@this.Immediate"
+           IndeterminateIcon="@this.IndeterminateIcon"
+           InputClass="@this.InputClass"
+           InputId="@this.InputId"
+           InputMode="@this.InputMode"
+           KeyDownPreventDefault="@this.KeyDownPreventDefault"
+           KeyUpPreventDefault="@this.KeyUpPreventDefault"
+           Lines="@this.Lines"
+           ListClass="@this.ListClass"
+           LockScroll="@this.LockScroll"
+           MaxHeight="@this.MaxHeight"
+           MaxLength="@this.MaxLength"
+           Modal="@this.Modal"
+           MultiSelection="@this.MultiSelection"
+           MultiSelectionTextFunc="@this.MultiSelectionTextFunc"
+           OnBlur="@this.OnBlur"
+           OnClearButtonClick="@this.OnClearButtonClick"
+           OnInternalInputChanged="@this.OnInternalInputChanged"
+           OnKeyDown="@this.OnKeyDown"
+           OnKeyUp="@this.OnKeyUp"
+           OnlyValidateIfDirty="@this.OnlyValidateIfDirty"
+           Open="@this.Open"
+           OpenChanged="@this.OpenChanged"
+           OpenIcon="@this.OpenIcon"
+           OuterClass="@this.OuterClass"
+           PopoverClass="@this.PopoverClass"
+           PopoverFixed="@this.PopoverFixed"
+           QuickSearchInterval="@this.QuickSearchInterval"
+           RelativeWidth="@this.RelativeWidth"
+           RequiredError="@this.RequiredError"
+           SelectAll="@this.SelectAll"
+           SelectAllText="@this.SelectAllText"
+           SelectionOnEnter="@this.SelectionOnEnter"
+           ShrinkLabel="@this.ShrinkLabel"
+           Strict="@this.Strict"
+           Tag="@this.Tag"
+           TransformOrigin="@this.TransformOrigin"
+           Typo="@this.Typo"
+           UncheckedIcon="@this.UncheckedIcon"
+           Underline="@this.Underline"
+           UserAttributes="@this.UserAttributes"
+           Validation="@this.Validation"
            @attributes="UserAttributes">
-
     @if (_isLoading)
     {
         <MudSkeleton />
@@ -45,19 +108,17 @@
         @foreach (var item in _dataList)
         {
             <MudSelectItem Value="@item.Value">
-                @if(EnableImages)
+                @if (EnableImages && !string.IsNullOrEmpty(item.ImageUrl))
                 {
-                    <img src="@item.ImageUrl" height="20"/>
+                    <img src="@item.ImageUrl" height="20" />
                 }
                 @item.Text
-                <MudDivider/>
             </MudSelectItem>
         }
     }
-        
 </MudSelect>
 
-@code {
+    @code {
     [Parameter]
     public Func<Task<IEnumerable<object>>> LoadData { get; set; }
 
@@ -82,24 +143,13 @@
     private List<SelectListModel<T>> _dataList = new List<SelectListModel<T>>();
     private bool _dataLoaded = false;
     private bool _isLoading = false;
-
-    private async Task OnValueChangedHandler(T value)
-    {
-        Value = value;
-
-        if (ValueChanged.HasDelegate)
-        {
-            await ValueChanged.InvokeAsync(value);
-        }
-
-        if (OnValueChanged.HasDelegate)
-        {
-            await OnValueChanged.InvokeAsync(value);
-        }
-    }
+    private string _displayText;
+    private bool _isInitialized = false;
 
     protected override async Task OnInitializedAsync()
     {
+        await base.OnInitializedAsync();
+
         if (For != null)
         {
             var member = (For.Body as MemberExpression)?.Member;
@@ -120,17 +170,57 @@
                 Required = member.GetCustomAttribute<RequiredAttribute>() != null;
             }
         }
-
-        await base.OnInitializedAsync();
     }
 
-    protected override async Task OnParametersSetAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await base.OnParametersSetAsync();
-        if (!_dataLoaded && LoadData != null)
+        if (firstRender && LoadData != null && !_dataLoaded && !_isLoading)
         {
             await LoadSelectData();
+            UpdateDisplayText();
+            await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private void UpdateDisplayText()
+    {
+        if (_dataLoaded && Value != null)
+        {
+            var selectedItem = _dataList.FirstOrDefault(x =>
+                EqualityComparer<T>.Default.Equals(x.Value, Value));
+            if (selectedItem != null)
+            {
+                _displayText = selectedItem.Text;
+            }
+        }
+        else if (Value != null)
+        {
+            _displayText = Value.ToString();
+        }
+        else
+        {
+            _displayText = string.Empty;
+        }
+    }
+
+    private async Task OnValueChangedHandler(T value)
+    {
+        Value = value;
+        UpdateDisplayText();
+
+        if (ValueChanged.HasDelegate)
+        {
+            await ValueChanged.InvokeAsync(value);
+        }
+
+        if (OnValueChanged.HasDelegate)
+        {
+            await OnValueChanged.InvokeAsync(value);
+        }
+    }
+
+    private void OnTextChanged(string text)
+    {
     }
 
     private async Task BuildDataList()
@@ -141,12 +231,13 @@
         var Data = await LoadData.Invoke();
         _dataList = Data.Select(item => new SelectListModel<T>
         {
-            Value = GetPropertyValue<T>(item,ValueField),
+            Value = GetPropertyValue<T>(item, ValueField),
             Text = GetPropertyValue<string>(item, TextField),
             ImageUrl = GetPropertyValue<string>(item, ImageField)
         }).ToList();
-    }
 
+        _dataLoaded = true;
+    }
 
     private TProperty GetPropertyValue<TProperty>(object item, string propertyName)
     {
@@ -160,23 +251,21 @@
         var value = property.GetValue(item);
 
         if (value == null)
-        {
             return default;
-        }
 
         return (TProperty)value;
     }
-
     private async Task LoadSelectData()
     {
-        if (_isLoading) 
+        if (_isLoading)
             return;
 
         _isLoading = true;
+
         try
         {
             await BuildDataList();
-            _dataLoaded = true;
+            UpdateDisplayText();
         }
         finally
         {
