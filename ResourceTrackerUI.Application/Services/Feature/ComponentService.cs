@@ -2,6 +2,7 @@
 
 using MapsterMapper;
 using ResourceTrackerUI.ApiClient;
+using ResourceTrackerUI.Application.Common;
 using ResourceTrackerUI.Application.Interfaces;
 using ResourceTrackerUI.Domain.Models.Common;
 using ResourceTrackerUI.Domain.Models.Feature.Components;
@@ -44,11 +45,11 @@ namespace ResourceTrackerUI.Application.Services.Feature
             return result;
         }
 
-        public async Task<PageableResponseModel<SearchComponentRequestModel>> SearchComponent(SearchComponentQueryModel model, CancellationToken cancellationToken)
+        public async Task<PageableResponseModel<SearchComponentResponseModel>> SearchComponent(SearchComponentQueryModel model, CancellationToken cancellationToken)
         {
             var orderDirection = (OrderDirectionEnum?)model.OrderDirection;
             var response = await _apiClient.ApiComponentSearchComponentAsync(model.ComponentId, model.Name, model.Description, model.Type, model.GameId, model.SearchTerms, model.PageNumber, model.PageSize,model.OrderBy, orderDirection, cancellationToken);
-            var result = _mapper.Map<PageableResponseModel<SearchComponentRequestModel>>(response);
+            var result = _mapper.Map<PageableResponseModel<SearchComponentResponseModel>>(response);
             return result;
         }
         

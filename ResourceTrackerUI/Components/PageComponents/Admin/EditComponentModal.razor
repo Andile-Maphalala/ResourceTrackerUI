@@ -1,0 +1,89 @@
+﻿@using ResourceTrackerUI.Application.Common
+@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Components.CustomComponents
+@using ResourceTrackerUI.Domain.Enums
+@using ResourceTrackerUI.Domain.Models.Feature.Components
+@using ResourceTrackerUI.Domain.Models.Feature.Game
+
+<RtForm TModel="ComponentModel" Model="Model" FormMode="FormMode" OnSubmit="Submit" OnCancel="Cancel">
+    <MudGrid>
+        <MudItem xs="12" sm="6">
+            <RtInput @bind-Value="Model.Name" For="@(() => Model.Name)"/>
+            <RtInput @bind-Value="Model.Description" For="@(() => Model.Description)" MaxLines="10" Lines="5" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            @if (FormMode.IsReadOnlyValue())
+            {
+                <RtInput Value="Model.GameName" For="@(() => Model.GameName)" Disabled="true" />
+                <RtInput Value="Model.TypeName" For="@(() => Model.TypeName)" Disabled="true" />
+            }
+            else
+            {
+                <RtSelect @bind-Value="Model.GameId" For="@(() => Model.GameId)" LoadData="OnGameDataLoad" EnableImages="true" />
+                <RtSelect @bind-Value="Model.Type" For="@(() => Model.Type)" LoadData="OnComponentTypeDataLoad" />
+            }
+
+        </MudItem>
+    </MudGrid>
+    </RtForm>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+
+    [Inject]
+    private IComponentService Service { get; set; }
+    [Inject]
+    private IGameService GameService { get; set; }
+    [Inject]
+    private ISnackbar Snackbar { get; set; }
+
+    [Parameter]
+    public ComponentModel Model { get; set; } = new ComponentModel();
+    [Parameter]
+    public FormModeEnum FormMode { get; set; }
+
+    private bool Swapping { get; set; } = true;
+    private string Base64 { get; set; }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    private async Task Submit()
+    {
+        switch (FormMode)
+        {
+            case FormModeEnum.Create:
+                var result = await Service.CreateComponent(Model, appCancellation.Token);
+                break;
+            case FormModeEnum.Update:
+                await Service.UpdateComponent(Model, appCancellation.Token);
+                break;
+            case FormModeEnum.Delete:
+                await Service.DeleteComponent(Model.Id, appCancellation.Token);
+                break;
+        }
+
+        MudDialog.Close();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task<IEnumerable<object>> OnGameDataLoad()
+    {
+        var data = await GameService.SearchGame(new SearchGamesQueryModel { PageSize = int.MaxValue, OrderBy = "Id" }, appCancellation.Token);
+        return data.Data.ToList();
+    }
+
+    private async Task<IEnumerable<object>> OnComponentTypeDataLoad()
+    {
+        var data = Enum.GetValues<ComponentTypeEnum>().Cast<ComponentTypeEnum>()
+        .Select(x => new { Id = (int)x, Name = x.GetEnumDescription() })
+        .ToList();
+
+        return data;
+    }
+}

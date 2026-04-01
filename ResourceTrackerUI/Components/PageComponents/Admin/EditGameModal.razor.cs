@@ -21,7 +21,6 @@ namespace ResourceTrackerUI.Components.PageComponents.Admin
         [Parameter]
         public FormModeEnum FormMode { get; set; }
 
-        private bool Swapping { get; set; } = true;
         private string Base64 { get; set; }
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
@@ -62,7 +61,6 @@ namespace ResourceTrackerUI.Components.PageComponents.Admin
                 Snackbar.Add("File size exceeds 5MB!", Severity.Error);
                 return;
             }
-            Swapping = true;
             StateHasChanged();
             using var stream = Model.Image.OpenReadStream(5242880); // Limit to 5MB.
             using var memoryStream = new MemoryStream();
@@ -71,8 +69,6 @@ namespace ResourceTrackerUI.Components.PageComponents.Admin
 
             Base64 = $"data:{Model.Image.ContentType};base64,{Convert.ToBase64String(fileBytes)}";
             Snackbar.Add("Image updated successfully!", Severity.Success);
-
-            Swapping = false;
         }
     }
 }

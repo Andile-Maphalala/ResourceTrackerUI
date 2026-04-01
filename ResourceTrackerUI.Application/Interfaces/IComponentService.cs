@@ -10,6 +10,6 @@ namespace ResourceTrackerUI.Application.Interfaces
         Task UpdateComponent(ComponentModel model, CancellationToken cancellationToken);
         Task DeleteComponent(int id, CancellationToken cancellationToken);
         Task<ComponentModel> GetComponent(int Id, CancellationToken cancellationToken);
-        Task<PageableResponseModel<SearchComponentRequestModel>> SearchComponent(SearchComponentQueryModel model, CancellationToken cancellationToken);
+        Task<PageableResponseModel<SearchComponentResponseModel>> SearchComponent(SearchComponentQueryModel model, CancellationToken cancellationToken);
     }
 }

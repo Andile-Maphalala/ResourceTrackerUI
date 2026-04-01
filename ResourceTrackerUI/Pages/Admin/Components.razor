@@ -1,11 +1,135 @@
-﻿@page "/admin/components"
+﻿@page "/admin/component"
 @using Microsoft.AspNetCore.Authorization
+@using ResourceTrackerUI.Application.Common
 @using ResourceTrackerUI.Application.Interfaces
 @using ResourceTrackerUI.Components.CustomComponents
+@using ResourceTrackerUI.Components.PageComponents.Admin
+@using ResourceTrackerUI.Domain.Common
+@using ResourceTrackerUI.Domain.Enums
 @using ResourceTrackerUI.Domain.Models.Common
 @using ResourceTrackerUI.Domain.Models.Feature
+@using ResourceTrackerUI.Domain.Models.Feature.Components
+@using ResourceTrackerUI.Domain.Models.Feature.Game
 @attribute [Authorize(Roles = "Administrator")]
+
+
+<h3>Components</h3>
+
+<MudPaper Class="p-4">
+    <RtTable @ref="tableRef" TItem="SearchComponentResponseModel" OnAction="Actions" LoadData="LoadData" ShowAllActionsExceptBulk="true">
+        <AdvancedSearchContent>
+            <MudGrid>
+                <MudItem xs="6" sm="3">
+                    <RtSelect @bind-Value="SearchModel.GameId" For="@(() => SearchModel.GameId)" OnValueChanged="OnSearchChange" LoadData="OnGameDataLoad" EnableImages="true"/>
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <RtInput @bind-Value="SearchModel.ComponentId" For="@(() => SearchModel.ComponentId)" OnValueChanged="OnSearchChange" />
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <RtInput @bind-Value="SearchModel.Name" For="@(() => SearchModel.Name)" OnValueChanged="OnSearchChange" />
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <RtInput @bind-Value="SearchModel.Description" For="@(() => SearchModel.Description)" OnValueChanged="OnSearchChange" />
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <RtSelect @bind-Value="SearchModel.Type" For="@(() => SearchModel.Type)" OnValueChanged="OnSearchChange" LoadData="OnComponentTypeDataLoad"/>
+                </MudItem>
+                
+            </MudGrid>
+        </AdvancedSearchContent>
+    </RtTable>
+</MudPaper>
+
 
 @code {
 
+    [Inject]
+    private IComponentService Service { get; set; }
+
+    [Inject]
+    private IGameService GameService { get; set; }
+
+    [Inject]
+    private IDialogService dialogService { get; set; }
+
+    private RtTable<SearchComponentResponseModel> tableRef;
+    private SearchComponentQueryModel SearchModel { get; set; }
+    private List<SearchGamesResponseModel> GameList { get; set; } = new List<SearchGamesResponseModel>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        SearchModel = new SearchComponentQueryModel
+        {
+            OrderBy = "Id",
+            OrderDirection = OrderDirectionEnum.Descending
+        };
+
+    }
+
+    private async Task<PageableResponseModel<SearchComponentResponseModel>> LoadData(PageableRequestModel request)
+    {
+        SearchModel.PageNumber = request.PageNumber;
+        SearchModel.PageSize = request.PageSize;
+        SearchModel.SearchTerms = request.SearchTerms;
+        SearchModel.OrderBy = request.OrderBy;
+        SearchModel.OrderDirection = request.OrderDirection;
+
+        var response = await Service.SearchComponent(SearchModel, appCancellation.Token);
+        return response;
+    }
+
+    private async Task Actions(ActionModel<SearchComponentResponseModel> item)
+    {
+        IDialogReference dialog;
+        var model = new ComponentModel();
+        switch (item.Mode)
+        {
+            case FormModeEnum.Create:
+                item.Item = new SearchComponentResponseModel();
+                break;
+            case FormModeEnum.Update:
+            case FormModeEnum.View:
+            case FormModeEnum.Delete:
+                model = await Service.GetComponent(item.Item.Id, appCancellation.Token);
+                break;
+            default:
+                return;
+        }
+        var options = new DialogOptions { CloseOnEscapeKey = true, FullWidth = true };
+
+        var parameters = new DialogParameters<EditComponentModal>
+            {
+                { x => x.FormMode, item.Mode},
+                { x => x.Model, model }
+            };
+
+        dialog = await dialogService.ShowAsync<EditComponentModal>(item.Mode.ToString(), parameters, options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await tableRef?.RefreshTable();
+        }
+    }
+
+    private async Task OnSearchChange()
+    {
+        await tableRef.RefreshTable();
+    }
+
+    private async Task<IEnumerable<object>> OnGameDataLoad()
+    {
+        var data = await GameService.SearchGame(new SearchGamesQueryModel { PageSize = int.MaxValue, OrderBy = "Id" }, appCancellation.Token);
+        return data.Data.ToList();
+    }
+
+    private async Task<IEnumerable<object>> OnComponentTypeDataLoad()
+    {
+        var data = Enum.GetValues<ComponentTypeEnum>().Cast<ComponentTypeEnum>()
+        .Select(x => new { Id = (int)x, Name = x.GetEnumDescription() })
+        .ToList();
+
+        return data;
+    }
 }
