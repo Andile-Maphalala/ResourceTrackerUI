@@ -1,4 +1,6 @@
-﻿using ResourceTrackerUI.ApiClient;
+﻿using Mapster.Models;
+using ResourceTrackerUI.ApiClient;
+using ResourceTrackerUI.Domain.Common;
 using ResourceTrackerUI.Domain.Enums;
 using System.ComponentModel;
 
@@ -24,19 +26,24 @@ namespace ResourceTrackerUI.Application.Common
             return descriptionAttribute.Description;
         }
 
-        public static ImageUploadTypeEnum? GetEnumValue(int? value)
+        public static IEnumerable<SelectListModel<int>> GetEnumSelectList<TEnum>(bool includeAllOption = false, string allOptionText = "All") where TEnum : Enum
         {
-            if (value == null)
-                return null;
+            var data = Enum.GetValues(typeof(TEnum))
+                .Cast<TEnum>()
+                .Select(x => new SelectListModel<int>
+                {
+                    Value = Convert.ToInt32(x),
+                    Text = x.GetEnumDescription()
+                });
 
-            if (Enum.IsDefined(typeof(ImageUploadTypeEnum), value))
+            if (includeAllOption)
             {
-                return (ImageUploadTypeEnum)value;
+                var list = data.ToList();
+                list.Insert(0, new SelectListModel<int> { Value = -1, Text = allOptionText });
+                return list;
             }
-            else
-            {
-                return null;
-            }
+
+            return data;
         }
 
         public static bool IsReadOnlyValue(this FormModeEnum value)

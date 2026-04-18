@@ -13,6 +13,7 @@ namespace ResourceTrackerUI.Components.PageComponents.Admin
 
         [Inject]
         private IGameService Service { get; set; }
+
         [Inject]
         private ISnackbar Snackbar { get; set; }
 

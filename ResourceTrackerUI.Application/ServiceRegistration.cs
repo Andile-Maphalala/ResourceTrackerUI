@@ -28,6 +28,7 @@ namespace ResourceTrackerUI.Application
 
             services.AddScoped<IGameService, GameService>();
             services.AddScoped<IComponentService, ComponentService>();
+            services.AddScoped<IImportService, ImportService>();
 
         }
 

@@ -1,7 +1,5 @@
 ﻿
 
-using System.Reflection.Metadata;
-
 namespace ResourceTrackerUI.Domain.Common
 {
     public class SelectListModel<T>

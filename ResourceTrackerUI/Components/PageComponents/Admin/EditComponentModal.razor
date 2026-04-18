@@ -25,7 +25,7 @@
 
         </MudItem>
     </MudGrid>
-    </RtForm>
+</RtForm>
 
 @code {
     [CascadingParameter]
@@ -80,9 +80,7 @@
 
     private async Task<IEnumerable<object>> OnComponentTypeDataLoad()
     {
-        var data = Enum.GetValues<ComponentTypeEnum>().Cast<ComponentTypeEnum>()
-        .Select(x => new { Id = (int)x, Name = x.GetEnumDescription() })
-        .ToList();
+        var data = EnumHelper.GetEnumSelectList<ComponentTypeEnum>();
 
         return data;
     }

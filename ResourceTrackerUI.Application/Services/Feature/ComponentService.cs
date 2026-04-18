@@ -2,15 +2,12 @@
 
 using MapsterMapper;
 using ResourceTrackerUI.ApiClient;
-using ResourceTrackerUI.Application.Common;
 using ResourceTrackerUI.Application.Interfaces;
 using ResourceTrackerUI.Domain.Models.Common;
 using ResourceTrackerUI.Domain.Models.Feature.Components;
 
 namespace ResourceTrackerUI.Application.Services.Feature
 {
-    
-
     public class ComponentService : IComponentService
     {
         private ResourceTrackerApiClient _apiClient { get; set; }

@@ -16,7 +16,7 @@
 <h3>Components</h3>
 
 <MudPaper Class="p-4">
-    <RtTable @ref="tableRef" TItem="SearchComponentResponseModel" OnAction="Actions" LoadData="LoadData" ShowAllActionsExceptBulk="true">
+    <RtTable @ref="tableRef" TItem="SearchComponentResponseModel" OnAction="Actions" LoadData="LoadData" ShowAllActions="true">
         <AdvancedSearchContent>
             <MudGrid>
                 <MudItem xs="6" sm="3">
@@ -80,21 +80,32 @@
 
     private async Task Actions(ActionModel<SearchComponentResponseModel> item)
     {
-        IDialogReference dialog;
         var model = new ComponentModel();
         switch (item.Mode)
         {
             case FormModeEnum.Create:
                 item.Item = new SearchComponentResponseModel();
+                await OpenEditModel(model, item);
                 break;
             case FormModeEnum.Update:
             case FormModeEnum.View:
             case FormModeEnum.Delete:
                 model = await Service.GetComponent(item.Item.Id, appCancellation.Token);
+                await OpenEditModel(model, item);
+                break;
+            case FormModeEnum.BulkCreate:
+                await OpenImportModel();
                 break;
             default:
                 return;
         }
+
+    }
+
+    private async Task OpenEditModel(ComponentModel model, ActionModel<SearchComponentResponseModel> item)
+    {
+        IDialogReference dialog;
+
         var options = new DialogOptions { CloseOnEscapeKey = true, FullWidth = true };
 
         var parameters = new DialogParameters<EditComponentModal>
@@ -113,6 +124,24 @@
         }
     }
 
+    private async Task OpenImportModel()
+    {
+        IDialogReference dialog;
+
+        var options = new DialogOptions { CloseOnEscapeKey = true, FullWidth = true, MaxWidth = MaxWidth.ExtraLarge};
+
+        dialog = await dialogService.ShowAsync<ImportComponentsModal>("Import", options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await tableRef?.RefreshTable();
+        }
+    }
+
+
+
     private async Task OnSearchChange()
     {
         await tableRef.RefreshTable();
@@ -126,9 +155,7 @@
 
     private async Task<IEnumerable<object>> OnComponentTypeDataLoad()
     {
-        var data = Enum.GetValues<ComponentTypeEnum>().Cast<ComponentTypeEnum>()
-        .Select(x => new { Id = (int)x, Name = x.GetEnumDescription() })
-        .ToList();
+        var data =  EnumHelper.GetEnumSelectList<ComponentTypeEnum>();
 
         return data;
     }
