@@ -22,7 +22,7 @@ namespace ResourceTrackerUI.Application.Services.Feature
         {
             if (model.Image != null)
             {
-                var fileparam = new FileParameter(model.Image.OpenReadStream(), model.Image.Name, model.Image.ContentType);
+                var fileparam = new FileParameter(model.Image.OpenReadStream(5242880), model.Image.Name, model.Image.ContentType);
                 var response = await _apiClient.ApiGameCreateGameWithImageAsync(model.Name, model.Description, model.AltText, fileparam, cancellationToken);
                 return response.Id;
 

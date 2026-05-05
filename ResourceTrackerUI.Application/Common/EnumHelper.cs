@@ -1,6 +1,4 @@
-﻿using Mapster.Models;
-using ResourceTrackerUI.ApiClient;
-using ResourceTrackerUI.Domain.Common;
+﻿using ResourceTrackerUI.Domain.Common;
 using ResourceTrackerUI.Domain.Enums;
 using System.ComponentModel;
 
@@ -26,20 +24,20 @@ namespace ResourceTrackerUI.Application.Common
             return descriptionAttribute.Description;
         }
 
-        public static IEnumerable<SelectListModel<int>> GetEnumSelectList<TEnum>(bool includeAllOption = false, string allOptionText = "All") where TEnum : Enum
+        public static IEnumerable<ValuePairModel<int>> GetEnumSelectList<TEnum>(bool includeAllOption = false, string allOptionText = "All") where TEnum : Enum
         {
             var data = Enum.GetValues(typeof(TEnum))
                 .Cast<TEnum>()
-                .Select(x => new SelectListModel<int>
+                .Select(x => new ValuePairModel<int>
                 {
-                    Value = Convert.ToInt32(x),
-                    Text = x.GetEnumDescription()
+                    Id = Convert.ToInt32(x),
+                    Name = x.GetEnumDescription()
                 });
 
             if (includeAllOption)
             {
                 var list = data.ToList();
-                list.Insert(0, new SelectListModel<int> { Value = -1, Text = allOptionText });
+                list.Insert(0, new ValuePairModel<int> { Id = -1, Name = allOptionText });
                 return list;
             }
 

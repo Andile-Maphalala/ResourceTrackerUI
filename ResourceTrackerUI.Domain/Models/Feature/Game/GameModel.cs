@@ -20,5 +20,6 @@ namespace ResourceTrackerUI.Domain.Models.Feature.Game
 
         public IBrowserFile? Image { get; set; }
         public string? ImageUrl { get; set; } = string.Empty;
+        public int? PictureId { get; set; }
     }
 }

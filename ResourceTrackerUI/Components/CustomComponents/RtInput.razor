@@ -58,6 +58,12 @@
                 {
                     Placeholder = attr?.Placeholder;
                 }
+
+                if (attr?.MaxLength != null && attr?.MaxLength != 0)
+                {
+                    this.MaxLength = attr.MaxLength;
+                    this.Counter = attr.MaxLength;
+                }
             }
         }
         

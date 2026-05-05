@@ -18,7 +18,7 @@ namespace ResourceTrackerUI.Application.Services.Feature
 
         public async Task<ImportGameResponseModel> ImportGameComponets(int? gameId, IBrowserFile importJsonFile, CancellationToken cancellationToken)
         {
-           var fileparam = new FileParameter(importJsonFile.OpenReadStream(), importJsonFile.Name, importJsonFile.ContentType);
+           var fileparam = new FileParameter(importJsonFile.OpenReadStream(5242880), importJsonFile.Name, importJsonFile.ContentType);
            var response = await _apiClient.ApiImportImportGameComponentsAsync(gameId, fileparam, cancellationToken);
            var result = new ImportGameResponseModel
            {

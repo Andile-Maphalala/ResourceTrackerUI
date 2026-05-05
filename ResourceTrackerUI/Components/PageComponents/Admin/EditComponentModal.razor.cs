@@ -1,20 +1,23 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using ResourceTrackerUI.Application.Common;
 using ResourceTrackerUI.Application.Interfaces;
 using ResourceTrackerUI.Domain.Enums;
+using ResourceTrackerUI.Domain.Models.Feature.Components;
 using ResourceTrackerUI.Domain.Models.Feature.Game;
-using ResourceTrackerUI.Domain.Models.Feature.Picture;
-using System.Buffers.Text;
 
 namespace ResourceTrackerUI.Components.PageComponents.Admin
 {
-    public partial class EditGameModal
+    public partial class EditComponentModal
     {
         [CascadingParameter]
         private IMudDialogInstance MudDialog { get; set; }
 
         [Inject]
-        private IGameService Service { get; set; }
+        private IComponentService Service { get; set; }
+
+        [Inject]
+        private IGameService GameService { get; set; }
 
         [Inject]
         private IPictureService PictureService { get; set; }
@@ -23,18 +26,20 @@ namespace ResourceTrackerUI.Components.PageComponents.Admin
         private ISnackbar Snackbar { get; set; }
 
         [Parameter]
-        public GameModel Model { get; set; } = new GameModel();
+        public ComponentModel Model { get; set; } = new ComponentModel();
+
         [Parameter]
         public FormModeEnum FormMode { get; set; }
 
         private string _base64 { get; set; }
         private bool _changedPicture { get; set; } = false;
+
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             if (firstRender)
             {
-                await InvokeAsync(StateHasChanged);
                 _base64 = Model.ImageUrl;
+                await InvokeAsync(StateHasChanged);
             }
         }
         private async Task Submit()
@@ -42,14 +47,15 @@ namespace ResourceTrackerUI.Components.PageComponents.Admin
             switch (FormMode)
             {
                 case FormModeEnum.Create:
-                    var result = await Service.CreateGame(Model, appCancellation.Token);
+                    var result = await Service.CreateComponent(Model, appCancellation.Token);
+                    await PictureService.CrudPicture(FormModeEnum.Create, _changedPicture, Model.PictureId, Model.Image, Model.Name, result, Model.AltText, (int)ImageUploadTypeEnum.Component, appCancellation.Token);
                     break;
                 case FormModeEnum.Update:
-                    await Service.UpdateGame(Model, appCancellation.Token);
-                    await PictureService.CrudPicture(FormModeEnum.Update, _changedPicture, Model.PictureId, Model.Image, Model.Name, Model.Id, Model.AltText, (int)ImageUploadTypeEnum.Game, appCancellation.Token);
+                    await Service.UpdateComponent(Model, appCancellation.Token);
+                    await PictureService.CrudPicture(FormModeEnum.Update, _changedPicture, Model.PictureId, Model.Image, Model.Name, Model.Id, Model.AltText, (int)ImageUploadTypeEnum.Component, appCancellation.Token);
                     break;
                 case FormModeEnum.Delete:
-                    await Service.DeleteGame(Model.Id, appCancellation.Token);
+                    await Service.DeleteComponent(Model.Id, appCancellation.Token);
                     break;
             }
 
@@ -57,6 +63,19 @@ namespace ResourceTrackerUI.Components.PageComponents.Admin
         }
 
         private void Cancel() => MudDialog.Cancel();
+
+        private async Task<IEnumerable<object>> OnGameDataLoad()
+        {
+            var data = await GameService.SearchGame(new SearchGamesQueryModel { PageSize = int.MaxValue, OrderBy = "Id" }, appCancellation.Token);
+            return data.Data.ToList();
+        }
+
+        private async Task<IEnumerable<object>> OnComponentTypeDataLoad()
+        {
+            var data = EnumHelper.GetEnumSelectList<ComponentTypeEnum>();
+
+            return data;
+        }
 
         private async Task SwapPicture()
         {
@@ -86,7 +105,7 @@ namespace ResourceTrackerUI.Components.PageComponents.Admin
             Model.Image = null;
             _base64 = null;
             _changedPicture = true;
-
         }
+
     }
 }

@@ -1,4 +1,5 @@
-﻿using ResourceTrackerUI.Domain.Attributes;
+﻿using Microsoft.AspNetCore.Components.Forms;
+using ResourceTrackerUI.Domain.Attributes;
 using System.ComponentModel.DataAnnotations;
 
 namespace ResourceTrackerUI.Domain.Models.Feature.Components
@@ -28,5 +29,12 @@ namespace ResourceTrackerUI.Domain.Models.Feature.Components
 
         [FormField("Game")]
         public string GameName { get; set; }
+
+        public int? PictureId { get; set; }
+
+        public string? ImageUrl { get; set; } = string.Empty;
+        public IBrowserFile? Image { get; set; }
+        public string? AltText { get; set; } = string.Empty;
+
     }
 }
