@@ -1,32 +1,67 @@
-﻿
-<MudPaper Width="250px" Class="d-inline-flex py-3" Elevation="0">
-    <MudNavMenu Class="mud-width-full" Rounded="true" Margin="Margin.Dense" Color="Color.Primary">
-        <MudText Typo="Typo.h6" Class="px-4">Resource Tracker</MudText>
-        <MudText Typo="Typo.body2" Class="px-4 mud-text-secondary">Welcome</MudText>
-        <MudDivider Class="my-2" />
-        <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
-        @if(IsAuthenticated)
+﻿@inject NavigationManager NavigationManager
+
+@* ── DESKTOP SIDEBAR ── *@
+<aside class="hidden lg:flex flex-col py-8 border-r border-outline-variant/20
+    bg-surface-container/90 backdrop-blur-lg
+    fixed left-0 h-[calc(100vh-64px)] w-64 z-40 top-16">
+
+    @* Branding block *@
+    <div class="px-6 mb-8">
+        <h2 class="font-label-caps text-label-caps text-primary mb-1">STRATEGIC_OVERVIEW</h2>
+        <p class="text-[10px] font-data-mono text-on-surface-variant opacity-60">Resource Tracker</p>
+
+        <div class="mt-4 p-4 glass-panel rounded-xl">
+            <p class="text-xs font-label-caps text-on-surface-variant mb-1">ACTIVE USER</p>
+            <p class="font-h3 text-h3 text-primary truncate">Resource Tracker</p>
+            <p class="text-body-sm font-body-sm text-outline">Management Console</p>
+        </div>
+    </div>
+
+    @* Navigation links *@
+    <nav class="flex-1 space-y-1">
+        <NavItem Href="/" Icon="home" Label="Home" CurrentPath="@_currentPath" />
+
+        @if (IsAuthenticated)
         {
-            <MudNavGroup Title="Admin" Icon="@Icons.Material.Filled.Settings" Expanded="true">
-                <MudNavLink Href="/admin/game" Icon="@Icons.Material.Filled.Games" IconColor="Color.Success">Game</MudNavLink>
-                <MudNavLink Href="/admin/component" Icon="@Icons.Material.Filled.PrecisionManufacturing" IconColor="Color.Info">Components</MudNavLink>
-                <MudNavLink Href="/admin/recipe" Icon="@Icons.Material.Filled.Science" IconColor="Color.Info">Recipes</MudNavLink>
-            </MudNavGroup>
+            @* Admin group header *@
+            <div class="px-6 pt-4 pb-1">
+                <span class="font-label-caps text-label-caps text-outline-variant">ADMIN</span>
+            </div>
+
+            <NavItem Href="/admin/game" Icon="sports_esports" Label="Game" CurrentPath="@_currentPath" />
+            <NavItem Href="/admin/component" Icon="precision_manufacturing" Label="Components" CurrentPath="@_currentPath" />
+            <NavItem Href="/admin/recipe" Icon="science" Label="Recipes" CurrentPath="@_currentPath" />
         }
+    </nav>
 
-    </MudNavMenu>
-</MudPaper>
+    @* Bottom sync button *@
+    <div class="px-6 mt-8 pt-8 border-t border-white/5">
+        <button class="w-full py-3 bg-primary text-on-primary font-label-caps text-label-caps
+            rounded active:scale-95 transition-transform hover:opacity-90">
+            SYNC_DATABASE
+        </button>
+    </div>
+</aside>
+
 @code {
+    [Parameter] public bool IsAuthenticated { get; set; }
 
-    [Parameter]
-    public bool IsAuthenticated { get; set; }
+    private string _currentPath = "/";
 
-    private bool collapseNavMenu = true;
-
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-
-    private void ToggleNavMenu()
+    protected override void OnInitialized()
     {
-        collapseNavMenu = !collapseNavMenu;
+        _currentPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        _currentPath = NavigationManager.ToBaseRelativePath(e.Location);
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
     }
 }

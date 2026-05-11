@@ -1,41 +1,4 @@
-html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-}
-
-h1:focus {
-    outline: none;
-}
-
-a, .btn-link {
-    color: #0071c1;
-}
-
-.btn-primary {
-    color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-.content {
-    padding-top: 1.1rem;
-}
-
-.valid.modified:not([type=checkbox]) {
-    outline: 1px solid #26b050;
-}
-
-.invalid {
-    outline: 1px solid red;
-}
-
-.validation-message {
-    color: red;
-}
-
+/* ── Blazor loading & error UI (keep these) ── */
 #blazor-error-ui {
     color-scheme: light only;
     background: lightyellow;
@@ -64,16 +27,17 @@ a, .btn-link {
 }
 
     .blazor-error-boundary::after {
-        content: "An error has occurred."
+        content: "An error has occurred.";
     }
 
+/* ── Loading spinner ── */
 .loading-progress {
     position: absolute;
     display: block;
     width: 8rem;
     height: 8rem;
     inset: 20vh 0 auto 0;
-    margin: 0 auto 0 auto;
+    margin: 0 auto;
 }
 
     .loading-progress circle {
@@ -85,7 +49,7 @@ a, .btn-link {
     }
 
         .loading-progress circle:last-child {
-            stroke: #1b6ec2;
+            stroke: #57f1db;
             stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
             transition: stroke-dasharray 0.05s ease-in-out;
         }
@@ -101,15 +65,303 @@ a, .btn-link {
         content: var(--blazor-load-percentage-text, "Loading");
     }
 
-code {
-    color: #c02d76;
+/* ── Kill Blazor's default layout so our Tailwind layout takes over ── */
+html, body {
+    background-color: #0b1326 !important;
+    color: #dae2fd !important;
+    font-family: 'Inter', sans-serif !important;
+    margin: 0;
+    padding: 0;
 }
 
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-    color: var(--bs-secondary-color);
-    text-align: end;
+.page {
+    display: contents !important;
+    flex-direction: unset !important;
 }
 
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-    text-align: start;
+.sidebar {
+    display: none !important;
+}
+
+main {
+    padding: 0 !important;
+    max-width: none !important;
+}
+
+.top-row {
+    display: none !important;
+}
+
+article.content {
+    padding: 0 !important;
+}
+
+/* ── Validation (keep) ── */
+.valid.modified:not([type=checkbox]) {
+    outline: 1px solid #26b050;
+}
+
+.invalid {
+    outline: 1px solid red;
+}
+
+.validation-message {
+    color: red;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MudBlazor Z-Index & Theme Overrides - CRITICAL FOR LAYOUT
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Z-Index layering - ensure proper stacking context */
+header {
+    z-index: 40 !important;
+}
+
+aside {
+    z-index: 35 !important;
+}
+
+main {
+    z-index: 0 !important;
+    position: relative;
+}
+
+nav {
+    z-index: 50 !important;
+}
+
+/* MudBlazor Popover - must be above all content */
+.mud-popover-open {
+    z-index: 1300 !important;
+}
+
+.mud-menu-paper {
+    z-index: 1300 !important;
+    background-color: #171f33 !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* MudBlazor Dialog - high z-index */
+.mud-dialog-container {
+    z-index: 1300 !important;
+}
+
+.mud-overlay-dialog {
+    z-index: 1300 !important;
+}
+
+/* Snackbar - highest non-menu z-index */
+.mud-snackbar-container {
+    z-index: 1400 !important;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   MudBlazor Component Styling - Match Dark Theme
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Paper component - glass effect */
+.mud-paper {
+    background-color: rgba(23, 31, 51, 0.7) !important;
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05) !important;
+    color: #dae2fd !important;
+}
+
+.mud-paper.mud-elevation-0 {
+    box-shadow: none !important;
+}
+
+/* Table styling */
+.mud-table {
+    background-color: transparent !important;
+}
+
+.mud-table-head {
+    background-color: rgba(45, 52, 73, 0.5) !important;
+}
+
+.mud-table-row {
+    background-color: transparent !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.mud-table-row:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.mud-table-cell {
+    color: #dae2fd !important;
+    border: none !important;
+    padding: 16px !important;
+}
+
+.mud-table-cell-head {
+    color: #bacac5 !important;
+    font-weight: 600;
+}
+
+/* Grid - use Tailwind spacing */
+.mud-grid {
+    margin: 0 !important;
+    width: 100%;
+}
+
+.mud-grid-item {
+    padding: 0 !important;
+}
+
+/* Input fields */
+.mud-input-slot {
+    color: #dae2fd !important;
+}
+
+.mud-input {
+    color: #dae2fd !important;
+}
+
+.mud-input-underline {
+    border-bottom-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.mud-input-underline::after {
+    border-bottom-color: #57f1db !important;
+}
+
+.mud-input:hover .mud-input-underline::before {
+    border-bottom-color: #57f1db !important;
+}
+
+.mud-input-adornment {
+    color: #bacac5 !important;
+}
+
+/* Select / Dropdown */
+.mud-select {
+    color: #dae2fd !important;
+}
+
+.mud-select-item {
+    color: #dae2fd !important;
+}
+
+.mud-select-item:hover {
+    background-color: rgba(87, 241, 219, 0.1) !important;
+}
+
+.mud-select-item-selected {
+    background-color: rgba(87, 241, 219, 0.2) !important;
+    color: #57f1db !important;
+}
+
+/* Checkbox */
+.mud-checkbox {
+    color: #57f1db !important;
+}
+
+/* Button */
+.mud-button-filled-primary {
+    background-color: #57f1db !important;
+    color: #003731 !important;
+}
+
+.mud-button-filled-primary:hover {
+    background-color: rgba(87, 241, 219, 0.9) !important;
+}
+
+.mud-button-text {
+    color: #57f1db !important;
+}
+
+.mud-button-text:hover {
+    background-color: rgba(87, 241, 219, 0.1) !important;
+}
+
+/* Menu Item */
+.mud-menu-item {
+    color: #dae2fd !important;
+}
+
+.mud-menu-item:hover {
+    background-color: rgba(87, 241, 219, 0.1) !important;
+    color: #57f1db !important;
+}
+
+/* Typography */
+.mud-typography {
+    color: #dae2fd !important;
+}
+
+.mud-text-secondary {
+    color: #bacac5 !important;
+}
+
+/* Divider */
+.mud-divider {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Alert */
+.mud-alert {
+    background-color: rgba(23, 31, 51, 0.7) !important;
+    color: #dae2fd !important;
+}
+
+/* Disabled state */
+.mud-disabled {
+    opacity: 0.5 !important;
+}
+
+.mud-input-disabled {
+    color: #bacac5 !important;
+}
+
+/* Card */
+.mud-card {
+    background-color: rgba(23, 31, 51, 0.7) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Expansion Panel */
+.mud-expand-panel {
+    background-color: rgba(23, 31, 51, 0.7) !important;
+}
+
+.mud-expand-panel-header {
+    color: #dae2fd !important;
+}
+
+/* Dialog */
+.mud-dialog {
+    background-color: rgba(23, 31, 51, 0.95) !important;
+    color: #dae2fd !important;
+}
+
+.mud-dialog-title {
+    color: #57f1db !important;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Content Layout Fixes - Prevent Overlap
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Main content area must have proper layering */
+main {
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    z-index: 0;
+}
+
+/* Ensure content doesn't go behind nav */
+.mud-table-container {
+    background-color: transparent !important;
+    position: relative;
+    z-index: auto;
+}
+
+main > * {
+    position: relative;
+    z-index: 0;
 }
