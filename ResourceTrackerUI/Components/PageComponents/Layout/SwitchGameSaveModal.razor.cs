@@ -97,7 +97,7 @@ namespace ResourceTrackerUI.Components.PageComponents.Layout
         private async Task ConfirmSave(GameSaveListModel save)
         {
 
-            await GameSaveState.SetActiveSave(save.Id, _selectedGame.Name, save.Name, _selectedGame.ImageUrl);
+            await GameSaveState.SetActiveSave(save.Id, _selectedGame.Id, _selectedGame.Name, save.Name, _selectedGame.ImageUrl);
             Snackbar.Add($"Active save set to {save.Name}", Severity.Success);
             MudDialog.Close(DialogResult.Ok(save.Id));
         }

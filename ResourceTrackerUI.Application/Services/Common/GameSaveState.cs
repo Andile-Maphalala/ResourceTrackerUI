@@ -7,6 +7,7 @@ namespace ResourceTrackerUI.Application.Services.Common
     public class GameSaveState(ILocalStorageService localStorageService)
     {
         public int? ActiveGameSaveId { get; private set; }
+        public int? ActiveGameId { get; private set; }
         public string? ActiveGameName { get; private set; }
         public string? ActiveSaveName { get; private set; }
         public string? ActiveGameImageUrl { get; private set; }
@@ -14,9 +15,10 @@ namespace ResourceTrackerUI.Application.Services.Common
 
         public event Action? OnChange;
 
-        public async Task SetActiveSave(int id, string gameName, string saveName, string? gameImageUrl = null)
+        public async Task SetActiveSave(int id,int gameId, string gameName, string saveName, string? gameImageUrl = null)
         {
             ActiveGameSaveId = id;
+            ActiveGameId = gameId;
             ActiveGameName = gameName;
             ActiveSaveName = saveName;
             ActiveGameImageUrl = gameImageUrl;
@@ -27,6 +29,7 @@ namespace ResourceTrackerUI.Application.Services.Common
         public void ClearActiveSave()
         {
             ActiveGameSaveId = null;
+            ActiveGameId = null;
             ActiveGameName = null;
             ActiveSaveName = null;
             ActiveGameImageUrl = null;
@@ -40,6 +43,7 @@ namespace ResourceTrackerUI.Application.Services.Common
             if (storage != null)
             {
                 ActiveGameSaveId = storage.Id;
+                ActiveGameId = storage.GameId;
                 ActiveGameName = storage.GameName;
                 ActiveSaveName = storage.SaveName;
                 ActiveGameImageUrl = storage.GameImageUrl;
@@ -52,6 +56,7 @@ namespace ResourceTrackerUI.Application.Services.Common
             var data = new GameSaveStorageModel
             {
                 Id = ActiveGameSaveId,
+                GameId = ActiveGameId,
                 GameName = ActiveGameName ?? string.Empty,
                 SaveName = ActiveSaveName ?? string.Empty,
                 GameImageUrl = ActiveGameImageUrl
@@ -62,6 +67,7 @@ namespace ResourceTrackerUI.Application.Services.Common
         private class GameSaveStorageModel
         {
             public int? Id { get; set; }
+            public int? GameId { get; set; }
             public string GameName { get; set; } = string.Empty;
             public string SaveName { get; set; } = string.Empty;
             public string? GameImageUrl { get; set; }

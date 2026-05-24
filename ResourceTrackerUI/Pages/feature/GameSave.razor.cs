@@ -77,7 +77,7 @@ namespace ResourceTrackerUI.Pages.feature
 
         private async Task SetActiveSave(GameSaveListModel save, SearchGamesResponseModel game)
         {
-            await GameSaveState.SetActiveSave(save.Id, game.Name, save.Name, game.ImageUrl);
+            await GameSaveState.SetActiveSave(save.Id, game.Id, game.Name, save.Name, game.ImageUrl);
             Snackbar.Add($"Active save set to {save.Name}", Severity.Success);
             StateHasChanged();
         }

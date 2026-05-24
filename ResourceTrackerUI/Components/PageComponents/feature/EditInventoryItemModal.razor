@@ -1,0 +1,18 @@
+﻿@using ResourceTrackerUI.Components.CustomComponents
+@using ResourceTrackerUI.Domain.Models.Feature.Inventory
+
+<RtForm TModel="InventoryModel" Model="Model" FormMode="FormMode" OnSubmit="Submit" OnCancel="Cancel">
+    <MudGrid>
+        <MudItem xs="12" sm="6">
+            <RtSelect @bind-Value="Model.ComponentId"
+                      For="@(() => Model.ComponentId)"
+                      LoadData="OnComponentDataLoad"
+                      EnableImages="true" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <RtInput @bind-Value="Model.AmountAquired" For="@(() => Model.AmountAquired)" />
+        </MudItem>
+    </MudGrid>
+</RtForm>
+
+
