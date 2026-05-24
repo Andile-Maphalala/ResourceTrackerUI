@@ -30,6 +30,9 @@ namespace ResourceTrackerUI.Application
             services.AddScoped<IComponentService, ComponentService>();
             services.AddScoped<IImportService, ImportService>();
             services.AddScoped<IPictureService, PictureService>();
+            services.AddScoped<IGameSaveService, GameSaveService>();
+
+            services.AddScoped<GameSaveState>();
 
         }
 

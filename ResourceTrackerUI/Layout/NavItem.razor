@@ -1,5 +1,6 @@
-﻿@* NavItem.razor *@
-<a href="@Href"
+﻿@inject NavigationManager NavigationManager
+
+<a @onclick="() => NavigationManager.NavigateTo(Href)"
        class="@GetClass() flex items-center gap-4 px-6 py-3
     hover:bg-white/5 hover:text-primary hover:translate-x-1
     transition-all duration-150 cursor-pointer group">
@@ -8,16 +9,41 @@
 </a>
 
 @code {
-    [Parameter] public string Href { get; set; } = "/";
-    [Parameter] public string Icon { get; set; } = "circle";
-    [Parameter] public string Label { get; set; } = "";
-    [Parameter] public string CurrentPath { get; set; } = "";
+    [Parameter] 
+    public string Href { get; set; } = "/";
+    [Parameter] 
+    public string Icon { get; set; } = "circle";
+    [Parameter] 
+    public string Label { get; set; } = "";
+    [Parameter] 
+    public string CurrentPath { get; set; } = "";
 
-    private bool IsActive => Href == "/"
-        ? CurrentPath == "" || CurrentPath == "/"
-        : CurrentPath.StartsWith(Href.TrimStart('/'));
+    private bool _isActive { get; set; }
 
-    private string GetClass() => IsActive
-        ? "bg-primary-container/20 text-primary border-l-4 border-primary"
-        : "text-on-surface-variant border-l-4 border-transparent";
+    private bool IsActive()
+    {
+        // Both CurrentPath (from parent) and Href have no leading slash — normalize both
+        var current = CurrentPath.Trim('/');
+        var href = Href.Trim('/');
+
+        // Exact match for root
+        if (href == "" && current == "") return true;
+
+        // Exact match or sub-path match (avoids "/" matching everything)
+        if (href == "") return false;
+
+        return current == href || current.StartsWith(href + "/");
+    }
+
+
+
+    private string GetClass()
+    {
+        if (IsActive())
+        {
+            return "bg-primary-container/20 text-primary border-l-4 border-primary";
+        }
+
+        return "text-on-surface-variant border-l-4 border-transparent";
+    }
 }
