@@ -97,6 +97,8 @@
     <link href="https://use.fontawesome.com/releases/v5.14.0/css/all.css" rel="stylesheet" />
     <link href="ResourceTrackerUI.styles.css" rel="stylesheet" />
 
+    <link href="_content/CodeBeam.MudBlazor.Extensions/MudExtensions.min.css" rel="stylesheet" />
+
     <!-- app.css last so our overrides win -->
     <link rel="stylesheet" href="css/app.css" />
 
@@ -134,12 +136,13 @@
     </div>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js?v=1"></script>
+    <script src="_content/CodeBeam.MudBlazor.Extensions/MudExtensions.min.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const main = document.querySelector('main');
             if (main && window.innerWidth >= 1024) {
-                main.style.marginLeft = '16rem'; 
+                main.style.marginLeft = '16rem';
             }
             window.addEventListener('resize', () => {
                 if (main) {

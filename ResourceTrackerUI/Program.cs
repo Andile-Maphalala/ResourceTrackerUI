@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
+using MudExtensions.Services;
 using ResourceTrackerUI.ApiClient;
 using ResourceTrackerUI.Application;
 using ResourceTrackerUI.Application.Services.Auth;
@@ -19,6 +20,7 @@ namespace ResourceTrackerUI
             //////////////////////////////////////////////////
             //mudblazor
             builder.Services.AddMudServices();
+            builder.Services.AddMudExtensions();
 
             // Register HttpClient for API
             var apiBaseUrl = builder.Configuration["ApiBaseUrl"];

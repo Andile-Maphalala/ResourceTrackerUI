@@ -131,9 +131,13 @@ nav {
     z-index: 50 !important;
 }
 
-/* MudBlazor Popover - must be above all content */
-.mud-popover-open {
-    z-index: 1300 !important;
+/* MudBlazor Dialog - high z-index */
+.mud-dialog-container {
+    z-index: 1200 !important;
+}
+
+.mud-overlay-dialog {
+    z-index: 1200 !important;
 }
 
 .mud-menu-paper {
@@ -142,12 +146,8 @@ nav {
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
-/* MudBlazor Dialog - high z-index */
-.mud-dialog-container {
-    z-index: 1300 !important;
-}
-
-.mud-overlay-dialog {
+/* MudSelect specific dropdown list - ensure it renders above modals */
+.mud-list {
     z-index: 1300 !important;
 }
 

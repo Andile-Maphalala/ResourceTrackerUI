@@ -4,7 +4,6 @@ namespace ResourceTrackerUI.Domain.Models.Feature.Inventory
 {
     public class InventoryModel : InventoryCrudModel
     {
-        public int ComponentId { get; set; }
         public string ComponentName { get; set; }
         public int ComponentType { get; set; }
         public string ComponentTypeName { get; set; }
