@@ -5,6 +5,7 @@ using MudBlazor;
 using ResourceTrackerUI.Application.Interfaces;
 using ResourceTrackerUI.Application.Services.Common;
 using ResourceTrackerUI.Components.PageComponents.feature;
+using ResourceTrackerUI.Components.PageComponents.feature.Inventory;
 using ResourceTrackerUI.Domain.Enums;
 using ResourceTrackerUI.Domain.Models.Feature;
 using ResourceTrackerUI.Domain.Models.Feature.Inventory;
@@ -28,8 +29,6 @@ namespace ResourceTrackerUI.Pages.feature
         // ── Data ──
         private List<SearchQuestsResponseModel> _quests { get; set; } = new List<SearchQuestsResponseModel>();
         private Dictionary<int, List<SearchInventoryResponseModel>> _itemsPerQuest = new();
-        private HashSet<int> _expandedQuestIds = new();
-        private HashSet<int> _loadingQuestIds = new();
         private Dictionary<int, string> _searchPerQuest = new();
 
         // Aggregated view
@@ -67,38 +66,13 @@ namespace ResourceTrackerUI.Pages.feature
                 _searchPerQuest.TryAdd(q.Id, string.Empty);
 
             _isLoading = false;
-
-            // Load ALL items upfront for aggregate view
-            await LoadAllItemsForAggregate();
         }
 
         // Loads every quest's items for the aggregate totals view
-        private async Task LoadAllItemsForAggregate()
+        private void LoadAllItemsForAggregate()
         {
-            foreach (var quest in _quests)
-            {
-                if (!_itemsPerQuest.ContainsKey(quest.Id))
-                    await LoadItemsForQuest(quest.Id);
-            }
-
             BuildAggregated();
             StateHasChanged();
-        }
-
-        private async Task LoadItemsForQuest(int questId)
-        {
-            _loadingQuestIds.Add(questId);
-            StateHasChanged();
-
-            var response = await InventoryService.SearchInventory(new SearchInventoryQueryModel
-            {
-                QuestId = questId,
-                PageSize = int.MaxValue,
-                OrderBy = "ComponentName"
-            }, appCancellation.Token);
-
-            _itemsPerQuest[questId] = response.Data.ToList();
-            _loadingQuestIds.Remove(questId);
         }
 
         private void BuildAggregated()
@@ -124,21 +98,6 @@ namespace ResourceTrackerUI.Pages.feature
                 .ToList();
         }
 
-        // ── Toggle expand ──
-        private async Task ToggleQuest(int questId)
-        {
-            if (_expandedQuestIds.Contains(questId))
-            {
-                _expandedQuestIds.Remove(questId);
-            }
-            else
-            {
-                _expandedQuestIds.Add(questId);
-                if (!_itemsPerQuest.ContainsKey(questId))
-                    await LoadItemsForQuest(questId);
-            }
-            StateHasChanged();
-        }
 
         private void SetView(string view)
         {
@@ -146,112 +105,55 @@ namespace ResourceTrackerUI.Pages.feature
             StateHasChanged();
         }
 
-        // ── Filter items within a location ──
-        private List<SearchInventoryResponseModel> FilterItems(
-            List<SearchInventoryResponseModel> items, int questId)
-        {
-            var search = _searchPerQuest.GetValueOrDefault(questId, string.Empty);
-            if (string.IsNullOrWhiteSpace(search)) return items;
-            return items
-                .Where(x => x.ComponentName.Contains(search, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-        }
-
-        // ── Inline quantity ──
-        private async Task IncrementQuantity(SearchInventoryResponseModel item)
-        {
-            item.AmountAquired++;
-            await SaveQuantity(item);
-        }
-
-        private async Task DecrementQuantity(SearchInventoryResponseModel item)
-        {
-            if (item.AmountAquired <= 0) return;
-            item.AmountAquired--;
-            await SaveQuantity(item);
-        }
-
-        private async Task SaveQuantity(SearchInventoryResponseModel item)
-        {
-            var model = new InventoryCrudModel
-            {
-                Id = item.Id,
-                ComponentId = item.ComponentId,
-                AmountAquired = item.AmountAquired
-            };
-            await InventoryService.UpdateInventory(model, appCancellation.Token);
-            BuildAggregated();
-            StateHasChanged();
-        }
 
         // ── Quest modals ──
-        private Task OpenCreateQuestModal() => OpenQuestModal(null, FormModeEnum.Create);
-        private Task OpenEditQuestModal(SearchQuestsResponseModel quest) => OpenQuestModal(quest, FormModeEnum.Update);
-        private Task OpenDeleteQuestModal(SearchQuestsResponseModel quest) => OpenQuestModal(quest, FormModeEnum.Delete);
-
-        private async Task OpenQuestModal(SearchQuestsResponseModel? quest, FormModeEnum mode)
+      
+        private async Task OpenCreateQuestModal()
         {
-            var model = quest != null
-                ? await QuestService.GetQuest(quest.Id, appCancellation.Token)
-                : new QuestModel { GameSaveId = GameSaveState.ActiveGameSaveId!.Value };
+            var model = new QuestModel { GameSaveId = GameSaveState.ActiveGameSaveId!.Value };
 
             var parameters = new DialogParameters<EditQuestModal>
             {
                 { x => x.Model, model },
-                { x => x.FormMode, mode }
+                { x => x.FormMode, FormModeEnum.Create }
             };
 
             var options = new DialogOptions { CloseOnEscapeKey = true, FullWidth = true };
-            var dialog = await DialogService.ShowAsync<EditQuestModal>(mode.ToString(), parameters, options);
+            var dialog = await DialogService.ShowAsync<EditQuestModal>(FormModeEnum.Create.ToString(), parameters, options);
             var result = await dialog.Result;
 
             if (!result.Canceled)
             {
                 _quests = new();
                 _itemsPerQuest = new();
-                _expandedQuestIds = new();
                 _aggregated = new();
                 await LoadQuests();
             }
         }
 
-        // ── Item modals ──
-        private Task OpenAddItemModal(SearchQuestsResponseModel quest) =>
-            OpenItemModal(null, quest, FormModeEnum.Create);
-
-        private Task OpenEditItemModal(SearchInventoryResponseModel item) =>
-            OpenItemModal(item, null, FormModeEnum.Update);
-
-        private Task OpenDeleteItemModal(SearchInventoryResponseModel item) =>
-            OpenItemModal(item, null, FormModeEnum.Delete);
-
-        private async Task OpenItemModal(
-            SearchInventoryResponseModel? item,
-            SearchQuestsResponseModel? quest,
-            FormModeEnum mode)
+        private void QuestDataUpdate(QuestUpdatedModel model)
         {
-            var model = item != null
-                ? await InventoryService.GetInventory(item.Id, appCancellation.Token)
-                : new InventoryModel { QuestId = quest!.Id };
-
-            var parameters = new DialogParameters<EditInventoryItemModal>
+            switch(model.UpdateType)
             {
-                { x => x.Model, model },
-                { x => x.FormMode, mode }
-            };
-
-            var options = new DialogOptions { CloseOnEscapeKey = true, FullWidth = true };
-            var dialog = await DialogService.ShowAsync<EditInventoryItemModal>(mode.ToString(), parameters, options);
-            var result = await dialog.Result;
-
-            if (!result.Canceled && model.QuestId > 0)
-            {
-                // Refresh just the affected quest
-                _itemsPerQuest.Remove(model.QuestId);
-                await LoadItemsForQuest(model.QuestId);
-                BuildAggregated();
-                StateHasChanged();
+                case QuestUpdateTypeEnum.InitiatedQuestItems:
+                    if(!_itemsPerQuest.ContainsKey(model.QuestId))
+                    {
+                        _itemsPerQuest.Add(model.QuestId, model.Items);
+                    }
+                    break;
+                case QuestUpdateTypeEnum.QuestDeleted:
+                    _itemsPerQuest.Remove(model.QuestId);
+                    var questToRemove = _quests.FirstOrDefault(q => q.Id == model.QuestId);
+                    if (questToRemove != null)
+                        _quests.Remove(questToRemove);
+                    break;
+                case QuestUpdateTypeEnum.ItemsUpdated:
+                    _itemsPerQuest[model.QuestId] = model.Items;
+                    break;
             }
+            LoadAllItemsForAggregate();
+            StateHasChanged();
         }
+
     }
 }

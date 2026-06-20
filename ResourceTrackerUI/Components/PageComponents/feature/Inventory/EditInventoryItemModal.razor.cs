@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
 using MudBlazor;
 using ResourceTrackerUI.Application.Interfaces;
 using ResourceTrackerUI.Application.Services.Common;
@@ -7,7 +6,7 @@ using ResourceTrackerUI.Domain.Enums;
 using ResourceTrackerUI.Domain.Models.Feature.Components;
 using ResourceTrackerUI.Domain.Models.Feature.Inventory;
 
-namespace ResourceTrackerUI.Components.PageComponents.feature
+namespace ResourceTrackerUI.Components.PageComponents.feature.Inventory
 {
     public partial class EditInventoryItemModal
     {
@@ -28,6 +27,7 @@ namespace ResourceTrackerUI.Components.PageComponents.feature
         public FormModeEnum FormMode { get; set; }
 
         private SearchComponentQueryModel _searchModel { get; set; }
+        private bool _disableDropdown { get; set; } = false;
 
         private async Task Submit()
         {
@@ -46,6 +46,11 @@ namespace ResourceTrackerUI.Components.PageComponents.feature
         protected override void OnInitialized()
         {
             base.OnInitialized();
+            if(FormMode == FormModeEnum.Update)
+            {
+                _disableDropdown = true;
+
+            }
             _searchModel = new SearchComponentQueryModel
             {
                 PageSize = int.MaxValue,

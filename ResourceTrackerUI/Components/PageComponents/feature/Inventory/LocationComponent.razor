@@ -1,0 +1,252 @@
+﻿@* @using ResourceTrackerUI.Domain.Models.Feature.Inventory
+@using ResourceTrackerUI.Domain.Models.Feature.Quest
+@if (!_isLoading && !Quests.Any())
+{
+    <div class="glass-panel rounded-xl p-16 text-center">
+        <span class="material-symbols-outlined text-5xl text-on-surface-variant">
+            location_off
+        </span>
+        <p class="text-body text-on-surface-variant mt-4 mb-6">
+            No locations yet. Create one to start tracking resources.
+        </p>
+        <button @onclick="OpenCreateQuestModal"
+                class="px-6 py-2.5 bg-primary text-on-primary font-label-caps
+            text-label-caps rounded hover:opacity-90 transition-all">
+            CREATE FIRST LOCATION
+        </button>
+    </div>
+}
+
+@foreach (var quest in Quests)
+{
+    var items = _itemsPerQuest.GetValueOrDefault(quest.Id);
+    var isExpanded = _expandedQuestIds.Contains(quest.Id);
+    var isLoadingItems = _loadingQuestIds.Contains(quest.Id);
+
+    <div class="glass-panel rounded-xl overflow-hidden">
+
+        <div class="flex items-center gap-4 p-5 cursor-pointer hover:bg-white/5 transition-colors
+            @(isExpanded ? "border-b border-white/5" : "")"
+             @onclick="() => ToggleQuest(quest.Id)">
+
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-3">
+                    <p class="font-bold text-on-surface">@quest.Name</p>
+                    @if (!string.IsNullOrEmpty(quest.Location))
+                    {
+                        <span class="text-[10px] font-label-caps text-on-surface-variant
+                            bg-surface-container px-2 py-0.5 rounded-full">
+                            @quest.Location
+                        </span>
+                    }
+                </div>
+                @if (!string.IsNullOrEmpty(quest.Description))
+                {
+                    <p class="text-body-sm text-on-surface-variant truncate">
+                        @quest.Description
+                    </p>
+                }
+            </div>
+
+            @if (items != null)
+            {
+                <span class="text-body-sm text-on-surface-variant mr-2">
+                    @items.Count item@(items.Count != 1 ? "s" : "")
+                </span>
+            }
+
+            <div class="flex items-center gap-1 mr-2" @onclick:stopPropagation="true">
+                <button @onclick="() => OpenEditQuestModal(quest)"
+                        class="p-1.5 text-on-surface-variant hover:text-primary
+                    rounded hover:bg-white/5 transition-colors">
+                    <span class="material-symbols-outlined text-sm">edit</span>
+                </button>
+                <button @onclick="() => OpenDeleteQuestModal(quest)"
+                        class="p-1.5 text-on-surface-variant hover:text-error
+                    rounded hover:bg-white/5 transition-colors">
+                    <span class="material-symbols-outlined text-sm">delete</span>
+                </button>
+            </div>
+
+            <span class="material-symbols-outlined text-on-surface-variant transition-transform duration-200
+                @(isExpanded ? "rotate-180" : "")">
+                expand_more
+            </span>
+        </div>
+
+        @if (isExpanded)
+        {
+            <div class="p-5">
+                @if (isLoadingItems)
+                {
+                    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+                }
+                else
+                {
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="flex-1 flex items-center gap-2 bg-surface-container
+                            border border-white/10 rounded-lg px-3 py-2">
+                            <span class="material-symbols-outlined text-on-surface-variant text-sm">
+                                search
+                            </span>
+                            <input @bind="_searchPerQuest[quest.Id]"
+                                   @bind:event="oninput"
+                                   placeholder="Search items..."
+                                   class="bg-transparent text-on-surface text-body w-full
+                            outline-none placeholder:text-on-surface-variant" />
+                        </div>
+                        <button @onclick="() => OpenAddItemModal(quest)"
+                                class="flex items-center gap-2 px-4 py-2 border border-primary/30
+                            text-primary font-label-caps text-label-caps rounded-lg
+                            hover:bg-primary/10 transition-colors flex-shrink-0">
+                            <span class="material-symbols-outlined text-sm">add</span>
+                            ADD ITEM
+                        </button>
+                    </div>
+
+                    @if (items == null || !items.Any())
+                    {
+                        <div class="text-center py-8 text-on-surface-variant">
+                            <span class="material-symbols-outlined text-3xl">inventory_2</span>
+                            <p class="text-body-sm mt-2">No items here yet.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        var filtered = FilterItems(items, quest.Id);
+                        <div class="glass-panel rounded-xl overflow-hidden">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-surface-container-highest/50 border-b border-white/5">
+                                    <tr>
+                                        <th class="px-5 py-3 font-label-caps text-label-caps text-on-surface-variant">
+                                            COMPONENT
+                                        </th>
+                                        <th class="px-5 py-3 font-label-caps text-label-caps text-on-surface-variant">
+                                            TYPE
+                                        </th>
+                                        <th class="px-5 py-3 font-label-caps text-label-caps text-on-surface-variant">
+                                            QUANTITY
+                                        </th>
+                                        <th class="px-5 py-3"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in filtered)
+                                    {
+                                        <tr class="border-b border-white/5 hover:bg-white/5 transition-colors group">
+                                            <td class="px-5 py-3">
+                                                <div class="flex items-center gap-3">
+                                                    @if (!string.IsNullOrEmpty(item.ComponentImageUrl))
+                                                    {
+                                                        <img src="@item.ComponentImageUrl"
+                                                             class="w-8 h-8 rounded object-cover" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="w-8 h-8 rounded bg-surface-container
+                                                            flex items-center justify-center">
+                                                            <span class="material-symbols-outlined text-on-surface-variant text-sm">
+                                                                category
+                                                            </span>
+                                                        </div>
+                                                    }
+                                                    <span class="font-body text-on-surface">
+                                                        @item.ComponentName
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td class="px-5 py-3">
+                                                <span class="text-[10px] font-label-caps px-2 py-0.5 rounded-full
+                                                    bg-surface-container text-on-surface-variant">
+                                                    @item.ComponentType
+                                                </span>
+                                            </td>
+                                            <td class="px-5 py-3">
+                                                @* Inline quantity editor 
+                                                <div class="flex items-center gap-2">
+                                                    <button @onclick="() => DecrementQuantity(item)"
+                                                            class="w-6 h-6 rounded bg-surface-container
+                                                        text-on-surface-variant hover:text-primary
+                                                        hover:bg-primary/10 transition-colors
+                                                        flex items-center justify-center">
+                                                        <span class="material-symbols-outlined text-sm">remove</span>
+                                                    </button>
+                                                    <span class="font-data-mono text-data-mono text-primary w-8 text-center">
+                                                        @item.AmountAquired
+                                                    </span>
+                                                    <button @onclick="() => IncrementQuantity(item)"
+                                                            class="w-6 h-6 rounded bg-surface-container
+                                                        text-on-surface-variant hover:text-primary
+                                                        hover:bg-primary/10 transition-colors
+                                                        flex items-center justify-center">
+                                                        <span class="material-symbols-outlined text-sm">add</span>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td class="px-5 py-3 text-right">
+                                                <div class="flex items-center justify-end gap-1
+                                                    opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button @onclick="() => OpenEditItemModal(item)"
+                                                            class="p-1 text-on-surface-variant hover:text-primary
+                                                        rounded transition-colors">
+                                                        <span class="material-symbols-outlined text-sm">edit</span>
+                                                    </button>
+                                                    <button @onclick="() => OpenDeleteItemModal(item)"
+                                                            class="p-1 text-on-surface-variant hover:text-error
+                                                        rounded transition-colors">
+                                                        <span class="material-symbols-outlined text-sm">delete</span>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                }
+            </div>
+        }
+    </div> *@
+}
+
+@code {
+
+    // [Parameter]
+    // public List<SearchQuestsResponseModel> Quests { get; set; } = new();
+
+    // private HashSet<int> _expandedQuestIds = new();
+    // private Dictionary<int, List<SearchInventoryResponseModel>> _itemsPerQuest = new();
+
+    // private async Task ToggleQuest(int questId)
+    // {
+    //     if (_expandedQuestIds.Contains(questId))
+    //     {
+    //         _expandedQuestIds.Remove(questId);
+    //     }
+    //     else
+    //     {
+    //         _expandedQuestIds.Add(questId);
+    //         if (!_itemsPerQuest.ContainsKey(questId))
+    //             await LoadItemsForQuest(questId);
+    //     }
+    //     StateHasChanged();
+    // }
+
+    // private async Task LoadItemsForQuest(int questId)
+    // {
+    //     _loadingQuestIds.Add(questId);
+    //     StateHasChanged();
+
+    //     var response = await InventoryService.SearchInventory(new SearchInventoryQueryModel
+    //     {
+    //         QuestId = questId,
+    //         PageSize = int.MaxValue,
+    //         OrderBy = "ComponentName"
+    //     }, appCancellation.Token);
+
+    //     _itemsPerQuest[questId] = response.Data.ToList();
+    //     _loadingQuestIds.Remove(questId);
+    // }
+
+}

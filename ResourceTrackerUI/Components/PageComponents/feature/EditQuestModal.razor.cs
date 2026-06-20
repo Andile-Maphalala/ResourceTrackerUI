@@ -30,7 +30,7 @@ namespace ResourceTrackerUI.Components.PageComponents.feature
                 case FormModeEnum.Delete: 
                     await QuestService.DeleteQuest(Model.Id, appCancellation.Token); break;
             }
-            MudDialog.Close();
+            MudDialog.Close(Model);
         }
 
         private void Cancel() => MudDialog.Cancel();

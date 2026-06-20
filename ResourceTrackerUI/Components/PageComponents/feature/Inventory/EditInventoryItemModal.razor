@@ -1,4 +1,4 @@
-﻿@using ResourceTrackerUI.Components.CustomComponents
+﻿@using ResourceTrackerUI.Components.CustomComponents.FormData
 @using ResourceTrackerUI.Domain.Models.Feature.Inventory
 
 <RtForm TModel="InventoryModel" Model="Model" FormMode="FormMode" OnSubmit="Submit" OnCancel="Cancel">
@@ -7,6 +7,7 @@
             <RtSelect @bind-Value="Model.ComponentId"
                       For="@(() => Model.ComponentId)"
                       LoadData="OnComponentDataLoad"
+                      Disabled="_disableDropdown"
                       EnableImages="true" 
                       EnableSearch="true"/>
         </MudItem>

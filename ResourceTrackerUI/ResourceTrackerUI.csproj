@@ -23,4 +23,8 @@
     <ProjectReference Include="..\ResourceTrackerUI.Application\ResourceTrackerUI.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Components\CustomComponents\NewFolder\" />
+  </ItemGroup>
+
 </Project>
