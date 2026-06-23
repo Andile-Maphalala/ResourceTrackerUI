@@ -7,7 +7,7 @@
         @if (FormMode == FormModeEnum.Delete)
         {
             <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
-                Are you sure you want to delete the following Data
+                @DeleteMessage
             </MudAlert>
         }
 
@@ -54,6 +54,9 @@
 
     [Parameter]
     public FormModeEnum FormMode { get; set; }
+
+    [Parameter]
+    public string DeleteMessage { get; set; } = "Are you sure you want to delete the following Data";
 
     private MudForm? Form { get; set; }
 

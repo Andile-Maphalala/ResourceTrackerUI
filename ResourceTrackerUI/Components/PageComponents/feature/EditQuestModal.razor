@@ -1,7 +1,7 @@
 ﻿@using ResourceTrackerUI.Components.CustomComponents.FormData
 @using ResourceTrackerUI.Domain.Models.Feature.Quest
 
-<RtForm TModel="QuestModel" Model="Model" FormMode="FormMode" OnSubmit="Submit" OnCancel="Cancel">
+<RtForm TModel="QuestModel" Model="Model" FormMode="FormMode" OnSubmit="Submit" OnCancel="Cancel" DeleteMessage="Are you sure you want to delete the following Quest and its components">
     <MudGrid>
         <MudItem xs="12" sm="6">
             <RtInput @bind-Value="Model.Name" For="@(() => Model.Name)" />

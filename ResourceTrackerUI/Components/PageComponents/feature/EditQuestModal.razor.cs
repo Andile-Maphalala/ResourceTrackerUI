@@ -23,8 +23,8 @@ namespace ResourceTrackerUI.Components.PageComponents.feature
         {
             switch (FormMode)
             {
-                case FormModeEnum.Create: 
-                    await QuestService.CreateQuest(Model, appCancellation.Token); break;
+                case FormModeEnum.Create:
+                    Model.Id = await QuestService.CreateQuest(Model, appCancellation.Token); break;
                 case FormModeEnum.Update: 
                     await QuestService.UpdateQuest(Model, appCancellation.Token); break;
                 case FormModeEnum.Delete: 

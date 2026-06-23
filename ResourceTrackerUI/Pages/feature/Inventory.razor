@@ -44,9 +44,9 @@
     @* ── Quick stats ── *@
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <ValueComponent  Value="@_quests.Count" Description="LOCATIONS"/>
-        <ValueComponent Value="@_aggregated.Count" Description="UNIQUE ITEMS" />
-        <ValueComponent Value="@_aggregated.Sum(x => x.TotalQuantity)" Description="TOTAL UNITS" />
-        <ValueComponent Value="@_totalItemsLoaded" Description="ITEMS LOADED" />
+        <ValueComponent Value="@_uniqueItems" Description="UNIQUE ITEMS" />
+        <ValueComponent Value="@_totalItems" Description="TOTAL ITEMS" />
+        <ValueComponent Value="@_itemStacks" Description="ITEM STACKS" />
     </div>
 
     @* ── Loading ── *@
