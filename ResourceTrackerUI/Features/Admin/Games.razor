@@ -1,0 +1,30 @@
+﻿@page "/admin/game"
+@using Microsoft.AspNetCore.Authorization
+@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Shared.CustomComponents.FormControls
+@using ResourceTrackerUI.Domain.Models.Common
+@using ResourceTrackerUI.Domain.Models.Feature
+@using ResourceTrackerUI.Domain.Models.Feature.Game
+@attribute [Authorize(Roles = "Administrator")]
+
+<h3>Game</h3>
+
+<MudPaper Class="p-4">
+    <RtTable @ref="tableRef" TItem="SearchGamesResponseModel" OnAction="Actions" LoadData="LoadData" ShowAllActionsExceptBulk="true" >
+        <AdvancedSearchContent>
+            <MudGrid>
+                <MudItem xs="6" sm="3">
+                    <RtInput @bind-Value="SearchModel.GameId" For="@(() => SearchModel.GameId)" OnValueChanged="OnSearchChange" />
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <RtInput @bind-Value="SearchModel.Name" For="@(() => SearchModel.Name)" OnValueChanged="OnSearchChange" />
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <RtInput @bind-Value="SearchModel.Description" For="@(() => SearchModel.Description)" OnValueChanged="OnSearchChange" />
+                </MudItem>
+            </MudGrid>
+        </AdvancedSearchContent>
+    </RtTable>
+</MudPaper>
+
+

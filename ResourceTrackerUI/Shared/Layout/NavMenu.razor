@@ -1,0 +1,129 @@
+﻿@using ResourceTrackerUI.Features.GameSave
+
+@* ── DESKTOP SIDEBAR ── *@
+<aside class="hidden lg:flex flex-col py-8 border-r border-outline-variant/20
+    bg-surface-container/90 backdrop-blur-lg
+    fixed left-0 h-[calc(100vh-64px)] w-64 z-40 top-16">
+
+    @* Branding block *@
+    <div class="px-6 mb-8">
+        <h2 class="font-label-caps text-label-caps text-primary mb-1">STRATEGIC_OVERVIEW</h2>
+        <p class="text-[10px] font-data-mono text-on-surface-variant opacity-60">Resource Tracker</p>
+
+        <div class="mt-4 p-4 glass-panel rounded-xl">
+            <p class="text-xs font-label-caps text-on-surface-variant mb-1">Active Session</p>
+            <p class="font-h3 text-h3 text-primary truncate">@_gameSaveState.ActiveGameName</p>
+            <p class="text-body-sm font-body-sm text-outline">@_gameSaveState.ActiveSaveName</p>
+        </div>
+    </div>
+
+    @* Navigation links *@
+    <nav class="flex-1 space-y-1">
+        <NavItem Href="/" Icon="home" Label="Home" CurrentPath="@_currentPath" />
+
+        @if (IsAuthenticated)
+        {
+            if (IsAdmin)
+            {
+                <div class="px-6 pt-4 pb-1">
+                    <span class="font-label-caps text-label-caps text-outline-variant">ADMIN</span>
+                </div>
+
+                <NavItem Href="admin/game" Icon="sports_esports" Label="Game" CurrentPath="@_adminPath" />
+                <NavItem Href="admin/component" Icon="precision_manufacturing" Label="Components" CurrentPath="@_adminPath" />
+            }
+
+            <div class="px-6 pt-4 pb-1">
+                <span class="font-label-caps text-label-caps text-outline-variant">Currrent Save</span>
+            </div>
+            <NavItem Href="inventory" Icon="inventory" Label="Inventory" CurrentPath="@_currentPath" />
+            <NavItem Href="buildplans" Icon="construction" Label="Build Plans" CurrentPath="@_currentPath" />
+            <NavItem Href="facilities" Icon="warehouse" Label="Facilities" CurrentPath="@_currentPath" />
+            <NavItem Href="resourcemap" Icon="map" Label="Resource Map" CurrentPath="@_currentPath" />
+
+            <div class="px-6 pt-4 pb-1">
+                <span class="font-label-caps text-label-caps text-outline-variant">Manage</span>
+            </div>
+            <NavItem Href="gamesave" Icon="sports_esports" Label="Game Saves" CurrentPath="@_currentPath" />
+            <button @onclick="OpenSwitchSaveModal"
+                    class="mt-3 w-full py-1.5 border border-primary/30 text-primary
+                font-label-caps text-label-caps rounded text-xs
+                hover:bg-primary/10 transition-colors flex items-center justify-center gap-1">
+                <span class="material-symbols-outlined" style="font-size:14px">swap_horiz</span>
+                SWITCH SAVE
+            </button>
+
+        }
+    </nav>
+
+    @* Bottom sync button *@
+    <div class="px-6 mt-8 pt-8 border-t border-white/5">
+        <button class="w-full py-3 bg-primary text-on-primary font-label-caps text-label-caps
+            rounded active:scale-95 transition-transform hover:opacity-90">
+            SYNC_DATABASE
+        </button>
+    </div>
+</aside>
+
+@code {
+    [Parameter] 
+    public bool IsAuthenticated { get; set; }
+
+    [Parameter]
+    public bool IsAdmin { get; set; }
+
+    [Inject]
+    private GameSaveState _gameSaveState { get; set; }
+    [Inject]
+    private NavigationManager NavigationManager { get; set; }
+    [Inject]
+    private IDialogService dialogService { get; set; }
+
+    private string _currentPath = "/";
+    private string _adminPath = "admin";
+
+
+
+    protected override void OnInitialized()
+    {
+        _currentPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        NavigationManager.LocationChanged += OnLocationChanged;
+        _gameSaveState.OnChange += StateHasChanged;
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        _currentPath = NavigationManager.ToBaseRelativePath(e.Location);
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+
+    private async Task OpenSwitchSaveModal()
+    {
+        var parameters = new DialogParameters<SwitchGameSaveModal>
+        {
+            { x => x.CurrentSaveId, _gameSaveState.ActiveGameSaveId }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseOnEscapeKey = true
+        };
+
+        var dialog = await dialogService.ShowAsync<SwitchGameSaveModal>("Switch Save", parameters, options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            StateHasChanged();
+            NavigationManager.NavigateTo("/", forceLoad: false);
+        }
+    }
+}

@@ -1,0 +1,560 @@
+﻿@using System.Reflection
+@using MudBlazor
+@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Domain.Common
+@using ResourceTrackerUI.Domain.Enums
+@using ResourceTrackerUI.Domain.Models.Common
+@using System.Text.Json
+
+@typeparam TItem
+
+@if (HasAdvancedSearch)
+{
+    <MudCollapse Expanded="@IsAdvancedSearchExpanded">
+        <MudCard Class="mb-4 advanced-search-panel">
+            <MudCardContent>
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.h6" Class="mb-3">Advanced Search</MudText>
+                    </MudItem>
+                    @if (AdvancedSearchContent != null)
+                    {
+                        <MudItem xs="12">
+                            @AdvancedSearchContent
+                        </MudItem>
+                    }
+                </MudGrid>
+            </MudCardContent>
+        </MudCard>
+    </MudCollapse>
+}
+    <MudTable @ref="_table"
+              Items="Data.Data"
+              Dense="Dense"
+              Hover="Hover"
+              Bordered="Bordered"
+              Striped="Striped"
+              ServerData="OnServerDataRequest"
+              LoadingContent="_loadingContent">
+        <HeaderContent>
+            @foreach (var column in _visibleColumns)
+            {
+                <MudTh>
+                    @if (column.Sortable)
+                    {
+                        <MudTableSortLabel SortBy="item => column.PropertyInfo.GetValue(item)"
+                                           T="TItem">
+                            @column.DisplayName
+                        </MudTableSortLabel>
+                    }
+                    else
+                    {
+                        @column.DisplayName
+                    }
+                    @if (EnableColumnSave)
+                    {
+                        <div style="position: absolute; top: 0; right: 0;">
+                            <MudIconButton Icon="@Icons.Material.Filled.DragHandle"
+                                            Size="Size.Small"
+                                            Color="Color.Default"
+                                            Style="cursor: move;" />
+                        </div>
+                    }
+                </MudTh>
+            }
+        </HeaderContent>
+    <ToolBarContent>
+        <MudGrid>
+            <MudItem xs="12" sm="6" md="4">
+                <MudStack Row="true" Spacing="1">
+                    @if (ShouldShowAction(FormModeEnum.Create))
+                    {
+                        <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="Color.Tertiary" OnClick="Add">Add</MudButton>
+                    }
+                    @if (ShouldShowAction(FormModeEnum.BulkCreate))
+                    {
+                        <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="Color.Tertiary" OnClick="BulkAdd">Bulk Add</MudButton>
+                    }
+                </MudStack>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="8">
+                <MudStack Row="true" Justify="Justify.FlexEnd" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudItem>
+                        <RtInput T="string"
+                                 ValueChanged="OnSearchChanged"
+                                 Placeholder="Search"
+                                 Adornment="Adornment.Start"
+                                 AdornmentIcon="@Icons.Material.Filled.Search"
+                                 Size="Size.Small"
+                                 Style="width: 150px;" />
+                    </MudItem>
+
+                    @if (HasAdvancedSearch)
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                   StartIcon="@Icons.Material.Filled.FilterList"
+                                   Color="@(IsAdvancedSearchExpanded ? Color.Primary : Color.Default)"
+                                   OnClick="ToggleAdvancedSearch"
+                                   Size="Size.Small">
+                            @(IsAdvancedSearchExpanded ? "Hide Filters" : "Filters")
+                        </MudButton>
+                    }
+                    @if (EnableColumnSave)
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                   StartIcon="@Icons.Material.Filled.ViewColumn"
+                                   Color="Color.Primary"
+                                   OnClick="OpenColumnChooser"
+                                   Size="Size.Small">
+                            Columns
+                        </MudButton>
+                    }
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </ToolBarContent>
+        <RowTemplate>
+            @foreach (var column in _visibleColumns)
+            {
+                <MudTd>
+                    @if (!string.IsNullOrEmpty(column.FormatString))
+                    {
+                        @string.Format("{0:" + column.FormatString + "}", column.PropertyInfo.GetValue(context))
+                    }
+                    else
+                    {
+                        @column.PropertyInfo.GetValue(context)
+                    }
+                </MudTd>
+            }
+            @if (_crudColumn != null)
+            {
+                <MudTd Style="width:1%;">
+                    <MudStack Row="true" Spacing="1">
+                        @foreach (var c in _crudColumn)
+                        {
+                            @c(context)
+                        }
+                    </MudStack>
+                </MudTd>
+
+            }
+        </RowTemplate>
+    <NoRecordsContent>
+        <MudText>No records found</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
+    </MudTable>
+
+
+@code {
+
+
+    [Inject]
+    private ILocalStorageService localStorageService { get; set; }
+
+    [Inject]
+    private IDialogService dialogService { get; set; }
+
+    [Parameter]
+    public Func<PageableRequestModel, Task<PageableResponseModel<TItem>>>? LoadData { get; set; }
+
+    [Parameter]
+    public PageableResponseModel<TItem>? Data { get; set; } = new PageableResponseModel<TItem>();
+
+    [Parameter]
+    public RenderFragment? AdvancedSearchContent { get; set; }
+
+    [Parameter]
+    public bool HasAdvancedSearch { get; set; } = true;
+
+    [Parameter]
+    public bool Dense { get; set; } = true;
+
+    [Parameter]
+    public bool Hover { get; set; } = true;
+
+    [Parameter]
+    public bool Bordered { get; set; } = true;
+
+    [Parameter]
+    public bool Striped { get; set; } = true;
+
+    [Parameter]
+    public List<AutotableActionVisibilityModel> ActionVisibilities { get; set; } = new List<AutotableActionVisibilityModel>();
+
+    [Parameter]
+    public bool ShowAllActionsExceptBulk { get; set; } = true;
+
+    [Parameter]
+    public bool ShowAllActions { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<ActionModel<TItem>> OnAction { get; set; }
+
+    [Parameter]
+    public int DefaultPageSize { get; set; } = 10;
+
+    [Parameter]
+    public bool EnableColumChooser { get; set; } = true;
+
+    [Parameter]
+    public string ColumnStorageKey { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool EnableColumnSave { get; set; } = true;
+
+    private readonly RenderFragment _loadingContent = @<MudSkeleton />;
+
+    private bool _isLoading { get; set; } = true;
+    private string _searchString { get; set; } = string.Empty;
+
+    private List<PropertyInfo> _searchableProps = new();
+    private List<ColumnDefinition> _visibleColumns = new();
+    private List<RenderFragment<TItem>> _crudColumn { get; set; } = default!;
+
+    private int _currentPageNumber = 1;
+    private int _pageSize = 10;
+    private int _totalPages = 1;
+    private int _totalRecords = 0;
+    private MudTable<TItem>? _table;
+
+    private List<ColumnDefinition> _allColumns = new();
+    private List<ColumnDefinition> _allDefaultColumns = new();
+    private DialogOptions dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
+
+    private bool IsAdvancedSearchExpanded = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _pageSize = DefaultPageSize;
+        _allDefaultColumns = typeof(TItem)
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Select(p => new ColumnDefinition(p))
+            .Where(c => c.HasAttribute)
+            .OrderBy(c => c.Order)
+            .ToList();
+
+        _allColumns = _allDefaultColumns
+       .Select(c => new ColumnDefinition(c.PropertyInfo))
+       .ToList();
+
+
+        if (EnableColumnSave && string.IsNullOrEmpty(ColumnStorageKey))
+        {
+            ColumnStorageKey = typeof(TItem).Name + "_ColumnConfig";
+        }
+        await LoadColumnConfiguration();
+
+        _searchableProps = _visibleColumns
+            .Where(c =>
+                c.PropertyInfo.PropertyType.IsPrimitive ||
+                c.PropertyInfo.PropertyType == typeof(string) ||
+                c.PropertyInfo.PropertyType == typeof(decimal) ||
+                c.PropertyInfo.PropertyType == typeof(DateTime))
+            .Where(c => c.HasAttribute)
+            .Select(c => c.PropertyInfo)
+            .ToList();
+
+
+        if (ShowAllActionsExceptBulk)
+        {
+            ActionVisibilities.Clear();
+            ActionVisibilities.Add(new AutotableActionVisibilityModel { Mode = FormModeEnum.Create, Visible = true });
+            ActionVisibilities.Add(new AutotableActionVisibilityModel { Mode = FormModeEnum.View, Visible = true });
+            ActionVisibilities.Add(new AutotableActionVisibilityModel { Mode = FormModeEnum.Update, Visible = true });
+            ActionVisibilities.Add(new AutotableActionVisibilityModel { Mode = FormModeEnum.Delete, Visible = true });
+
+        }
+        if (ShowAllActions)
+        {
+            ActionVisibilities.Clear();
+            ActionVisibilities.Add(new AutotableActionVisibilityModel { Mode = FormModeEnum.Create, Visible = true });
+            ActionVisibilities.Add(new AutotableActionVisibilityModel { Mode = FormModeEnum.View, Visible = true });
+            ActionVisibilities.Add(new AutotableActionVisibilityModel { Mode = FormModeEnum.Update, Visible = true });
+            ActionVisibilities.Add(new AutotableActionVisibilityModel { Mode = FormModeEnum.Delete, Visible = true });
+            ActionVisibilities.Add(new AutotableActionVisibilityModel { Mode = FormModeEnum.BulkCreate, Visible = true });
+        }
+
+        AddCrudColumnButtons();
+
+        _isLoading = false;
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+        }
+    }
+
+
+    private async Task<TableData<TItem>> OnServerDataRequest(TableState state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            _isLoading = true;
+
+            var request = new PageableRequestModel
+            {
+                PageNumber = state.Page + 1,
+                PageSize = state.PageSize,
+                SearchTerms = _searchString,
+                OrderBy = state.SortLabel ?? "Id",
+                OrderDirection = state.SortDirection == SortDirection.Ascending
+                    ? OrderDirectionEnum.Ascending
+                    : OrderDirectionEnum.Descending
+            };
+
+            if (LoadData != null)
+            {
+                var response = await LoadData.Invoke(request);
+                Data = response;
+
+                _currentPageNumber = response.PageNumber;
+                _pageSize = response.PageSize;
+                _totalPages = response.PageCount;
+                _totalRecords = response.TotalRecords;
+
+                return new TableData<TItem>
+                {
+                    Items = response.Data,
+                    TotalItems = response.TotalRecords
+                };
+            }
+
+            return new TableData<TItem>
+            {
+                Items = new List<TItem>(),
+                TotalItems = 0
+            };
+        }
+        catch (Exception ex)
+        {
+            return new TableData<TItem>
+            {
+                Items = new List<TItem>(),
+                TotalItems = 0
+            };
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnPageChanged(int pageNumber)
+    {
+        _currentPageNumber = pageNumber;
+        if (_table != null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    public async Task RefreshTable()
+    {
+        if (_table != null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+
+    private async Task OnSearchChanged(string Value)
+    {
+        _searchString = Value;
+        if (_table != null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    private async Task Add()
+    {
+        await OnAction.InvokeAsync(new ActionModel<TItem> { Mode = FormModeEnum.Create });
+    }
+
+    private async Task BulkAdd()
+    {
+        await OnAction.InvokeAsync(new ActionModel<TItem> { Mode = FormModeEnum.BulkCreate });
+    }
+
+    private void AddCrudColumnButtons()
+    {
+        var crudColumns = new List<RenderFragment<TItem>>();
+        if (ShouldShowAction(FormModeEnum.View))
+        {
+            crudColumns.Add(item => builder =>
+            {
+                builder.OpenComponent<MudButton>(0);
+                builder.AddAttribute(1, "Color", Color.Info);
+                builder.AddAttribute(2, "Variant", Variant.Filled);
+                builder.AddAttribute(3, "OnClick", EventCallback.Factory.Create<MouseEventArgs>(this, () => OnAction.InvokeAsync(new ActionModel<TItem> { Item = item, Mode = FormModeEnum.View })));
+                builder.AddAttribute(4, "StartIcon", Icons.Material.Filled.Visibility);
+                builder.AddAttribute(5, "ChildContent", (RenderFragment)(b =>
+                {
+                    b.AddContent(6, "View");
+                }));
+                builder.CloseComponent();
+            });
+        }
+        if (ShouldShowAction(FormModeEnum.Update))
+        {
+            crudColumns.Add(item => builder =>
+            {
+                builder.OpenComponent<MudButton>(0);
+                builder.AddAttribute(1, "Color", Color.Primary);
+                builder.AddAttribute(2, "Variant", Variant.Filled);
+                builder.AddAttribute(3, "OnClick", EventCallback.Factory.Create<MouseEventArgs>(this, (MouseEventArgs e) => OnAction.InvokeAsync(new ActionModel<TItem> { Item = item, Mode = FormModeEnum.Update })));
+                builder.AddAttribute(4, "StartIcon", Icons.Material.Filled.Edit);
+                builder.AddAttribute(5, "ChildContent", (RenderFragment)(b =>
+                {
+                    b.AddContent(6, "Edit");
+                }));
+                builder.CloseComponent();
+            });
+        }
+        if (ShouldShowAction(FormModeEnum.Delete))
+        {
+            crudColumns.Add(item => builder =>
+            {
+                builder.OpenComponent<MudButton>(0);
+                builder.AddAttribute(1, "Color", Color.Error);
+                builder.AddAttribute(2, "Variant", Variant.Filled);
+                builder.AddAttribute(3, "OnClick", EventCallback.Factory.Create<MouseEventArgs>(this, () => OnAction.InvokeAsync(new ActionModel<TItem> { Item = item, Mode = FormModeEnum.Delete })));
+                builder.AddAttribute(4, "StartIcon", Icons.Material.Filled.Delete);
+                builder.AddAttribute(5, "ChildContent", (RenderFragment)(b =>
+                {
+                    b.AddContent(6, "Delete");
+                }));
+                builder.CloseComponent();
+            });
+        }
+        _crudColumn = crudColumns;
+
+    }
+
+    private bool ShouldShowAction(FormModeEnum mode)
+    {
+        var visibility = ActionVisibilities.FirstOrDefault(a => a.Mode == mode);
+        if (visibility != null)
+        {
+            return visibility.Visible;
+        }
+        return false;
+    }
+
+
+    private async Task LoadColumnConfiguration()
+    {
+        if (EnableColumChooser)
+        {
+            try
+            {
+                var savedConfig = await GetColumnConfigurationFromStorage();
+                if (savedConfig != null && savedConfig.Count > 0)
+                {
+                    foreach (var column in _allColumns)
+                    {
+                        var savedColumn = savedConfig.FirstOrDefault(c => c.PropertyName == column.PropertyInfo.Name);
+                        if (savedColumn != null)
+                        {
+                            column.Visible = savedColumn.Visible;
+                            column.Order = savedColumn.Order;
+                        }
+                        else
+                        {
+                            column.Visible = column.Visible;
+                            column.Order = column.Order;
+                        }
+                    }
+                }
+
+                _allColumns = _allColumns.OrderBy(c => c.Order).ToList();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading column configuration: {ex.Message}");
+            }
+        }
+
+        UpdateVisibleColumns();
+    }
+
+    private async Task SaveColumnConfiguration()
+    {
+        var config = _allColumns.Select(c => new ColumnConfigurationModel
+        {
+            PropertyName = c.PropertyInfo.Name,
+            Visible = c.Visible,
+            Order = c.Order
+        }).ToList();
+
+        await SaveColumnConfigurationToStorage(config);
+    }
+
+
+    private void UpdateVisibleColumns()
+    {
+        _visibleColumns = _allColumns
+            .Where(c => c.Visible)
+            .OrderBy(c => c.Order)
+            .ToList();
+        StateHasChanged();
+    }
+
+    private async void OpenColumnChooser()
+    {
+
+        var parameters = new DialogParameters<RtTableColumnPicker>
+        {
+
+            { x => x.AllColumns, _allColumns },
+            { x => x.DefaultColumns, _allDefaultColumns }
+        };
+        var dialog = await dialogService.ShowAsync<RtTableColumnPicker>("Configure Columns", parameters, dialogOptions);
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is List<ColumnDefinition>)
+        {
+            List<ColumnDefinition> updatedColumns = result.Data as List<ColumnDefinition>;
+            _allColumns = updatedColumns;
+            await SaveColumnConfiguration();
+            UpdateVisibleColumns();
+
+        }
+    }
+
+    private async Task<List<ColumnConfigurationModel>> GetColumnConfigurationFromStorage()
+    {
+        if(localStorageService != null)
+        {
+            var configJson = await localStorageService.GetItemAsync<string>(ColumnStorageKey);
+            if (!string.IsNullOrEmpty(configJson))
+            {
+                return JsonSerializer.Deserialize<List<ColumnConfigurationModel>>(configJson) ?? new List<ColumnConfigurationModel>();
+            }
+        }
+        return new List<ColumnConfigurationModel>();
+    }
+
+    private async Task SaveColumnConfigurationToStorage(List<ColumnConfigurationModel> config)
+    {
+        if(localStorageService != null)
+        {
+            var configJson = JsonSerializer.Serialize(config);
+            await localStorageService.SetItemAsync(ColumnStorageKey, configJson);
+        }
+    }
+
+    private void ToggleAdvancedSearch()
+    {
+        IsAdvancedSearchExpanded = !IsAdvancedSearchExpanded;
+    }
+
+}

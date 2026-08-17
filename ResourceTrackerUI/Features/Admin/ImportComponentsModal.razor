@@ -1,0 +1,107 @@
+﻿@using ResourceTrackerUI.Application.Common
+@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Shared.CustomComponents.FormControls
+@using ResourceTrackerUI.Domain.Common
+@using ResourceTrackerUI.Domain.Enums
+@using ResourceTrackerUI.Domain.Models.Feature.Game
+@using ResourceTrackerUI.Domain.Models.Feature.Import
+
+<RtDialog Title="Import Components">
+    <ChildContent>
+        <MudContainer MaxWidth="MaxWidth.Large" Class="py-8">
+            <MudCard Elevation="2" Class="import-card">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h4" Class="d-flex align-center gap-2">
+                            <MudIcon Icon="@Icons.Material.Filled.UploadFile" Size="Size.Large" Color="Color.Primary" />
+                            Import Data
+                        </MudText>
+
+                            @if (_responseModel != null)
+                            {
+                            <MudText Typo="Typo.h6" Class="d-flex align-center gap-2">
+
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" />
+                                <span> Total Components : @_responseModel.TotalComponet</span>
+                                <span> Total Facilities : @_responseModel.TotalFacilities</span>
+                            </MudText>
+
+                            }
+                            else
+                            {
+                            <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="mt-1">
+                                Select a game and upload your import file
+                            </MudText>
+                            }
+                       
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudGrid Class="p-4" Spacing="1">
+                    <MudItem xs="12" md="12">
+                        <RtInput T="string" Value="_searchString" OnValueChangedData="OnGameSearch" Label="Search" />
+                    </MudItem>
+                    <MudItem xs="12" md="12">
+                        <MudGrid Class="p-4" Spacing="1">
+                            @foreach (var game in _games)
+                            {
+                                <MudItem xs="3" md="3" Class="d-flex">
+                                    <MudCard Class="d-flex flex-column" Style="width:100%; height:100%;">
+            
+                                        <MudCardMedia Image="@game.ImageUrl"
+                                                      Height="160"
+                                                      Class="flex-shrink-0" />
+
+                                        <MudCardContent Class="flex-grow-1">
+                                            <MudText Typo="Typo.h5">
+                                                @game.Name
+                                            </MudText>
+
+                                            <MudText Typo="Typo.body2">
+                                                @game.Description
+                                            </MudText>
+                                        </MudCardContent>
+
+                                        <MudCardActions Class="mt-auto">
+                                            <MudButton Variant="Variant.Text" OnClick="() => SelectGame(game)"
+                                                       Color="Color.Primary">
+                                                Select
+                                            </MudButton>
+                                        </MudCardActions>
+
+                                    </MudCard>
+                                </MudItem>
+                            }
+                        </MudGrid>
+                      
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudFileUpload T="IBrowserFile" @ref="_fileUpload" @bind-Files="@_selectedFile" OnFilesChanged="@SelectFile" Required="true" Disabled="_disableInput" />
+                        @if (_selectedGame  != null)
+                        {
+                            <MudText> Import @_selectedGame.Name</MudText>
+                        }
+                    </MudItem>
+                    </MudGrid>
+            </MudCard>
+       </MudContainer>
+    </ChildContent>
+    <ActionContent>
+        @if(_isLoading)
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
+        }
+        @if(_showClose)
+        {
+        <MudButton class="mud-button mud-button-filled mud-button-filled-primary" @onclick="Close" disabled="@(_selectedFile == null || _selectedGame == null)">Close</MudButton>
+
+        }
+        else
+        {
+        <MudButton class="mud-button mud-button-filled mud-button-filled-primary" @onclick="Submit" disabled="@(_selectedFile == null || _selectedGame == null)">Import</MudButton>
+
+        }
+        <MudButton class="mud-button mud-button-text" @onclick="Cancel">Cancel</MudButton>
+    </ActionContent>
+    </RtDialog>
+
+
