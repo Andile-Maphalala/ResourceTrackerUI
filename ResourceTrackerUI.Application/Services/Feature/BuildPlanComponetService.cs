@@ -56,6 +56,8 @@ namespace ResourceTrackerUI.Application.Services.Feature
         public async Task<PageableResponseModel<BuildPlanComponentResponseModel>> SearchBuildPlanComponent(SearchBuildPlanComponentQueryModel model, CancellationToken cancellationToken)
         {
             var orderDirection = (OrderDirectionEnum?)model.OrderDirection;
+            if (string.IsNullOrEmpty(model.OrderBy))
+                model.OrderBy = "Id";
             var response = await apiClient.ApiBuildPlanComponetSearchBuildPlanComponentsAsync(model.Id,model.BuildPlanId,model.BuildPlanName,model.BuildPlanDescription,model.ComponentId,model.ComponentName,model.ComponentDescription,model.Type,model.SearchTerms, model.PageNumber,model.PageSize,model.OrderBy,orderDirection,cancellationToken);
             var result = mapper.Map<PageableResponseModel<BuildPlanComponentResponseModel>>(response);
             return result;

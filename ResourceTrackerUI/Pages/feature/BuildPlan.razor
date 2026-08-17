@@ -1,0 +1,101 @@
+@page "/buildplans"
+@using Microsoft.AspNetCore.Authorization
+@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Components.CustomComponents.FormData
+@using ResourceTrackerUI.Components.PageComponents.feature.BuildPlan
+@using ResourceTrackerUI.Domain.Common
+@using ResourceTrackerUI.Domain.Enums
+@using ResourceTrackerUI.Domain.Models.Common
+@using ResourceTrackerUI.Domain.Models.Feature.BuildPlan
+
+@attribute [Authorize]
+
+<MudPaper Class="p-4">
+    <RtTable @ref="_tableRef" TItem="SearchBuildPlansResponseModel" OnAction="Actions" LoadData="LoadData" ShowAllActionsExceptBulk="true">
+        <AdvancedSearchContent>
+            <MudGrid>
+                <MudItem xs="6" sm="6">
+                    <RtInput @bind-Value="_searchModel.Name" For="@(() => _searchModel.Name)" OnValueChanged="OnSearchChange" />
+                </MudItem>
+                <MudItem xs="6" sm="6">
+                    <RtInput @bind-Value="_searchModel.Description" For="@(() => _searchModel.Description)" OnValueChanged="OnSearchChange" />
+                </MudItem>
+            </MudGrid>
+        </AdvancedSearchContent>
+    </RtTable>
+</MudPaper>
+
+
+@code {
+    [Inject] 
+    private IBuildPlanService Service { get; set; } = default!;
+    [Inject] 
+    private GameSaveState BuildPlanSaveState { get; set; }
+    [Inject]
+    private IDialogService dialogService { get; set; }
+
+    private SearchBuildPlansQueryModel _searchModel { get; set; }
+    private RtTable<SearchBuildPlansResponseModel> _tableRef;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _searchModel = new SearchBuildPlansQueryModel
+        {
+            OrderBy = "Id",
+            OrderDirection = OrderDirectionEnum.Descending,
+            GameSaveId = BuildPlanSaveState.ActiveGameSaveId
+        };
+    }
+
+    private async Task<PageableResponseModel<SearchBuildPlansResponseModel>> LoadData(PageableRequestModel request)
+    {
+        _searchModel.PageNumber = request.PageNumber;
+        _searchModel.PageSize = request.PageSize;
+        _searchModel.SearchTerms = request.SearchTerms;
+        _searchModel.OrderBy = request.OrderBy;
+        _searchModel.OrderDirection = request.OrderDirection;
+
+        var response = await Service.SearchBuildPlan(_searchModel, appCancellation.Token);
+        return response;
+    }
+
+    private async Task Actions(ActionModel<SearchBuildPlansResponseModel> item)
+    {
+        IDialogReference dialog;
+        var model = new BuildPlanModel();
+        switch (item.Mode)
+        {
+            case FormModeEnum.Create:
+                item.Item = new SearchBuildPlansResponseModel();
+                break;
+            case FormModeEnum.Update:
+            case FormModeEnum.View:
+            case FormModeEnum.Delete:
+                model = await Service.GetBuildPlan(item.Item.Id, appCancellation.Token);
+                break;
+            default:
+                return;
+        }
+        var options = new DialogOptions { CloseOnEscapeKey = true, FullWidth = true };
+
+        var parameters = new DialogParameters<EditBuildPlanModal>
+            {
+                { x => x.FormMode, item.Mode},
+                { x => x.Model, model }
+            };
+
+        dialog = await dialogService.ShowAsync<EditBuildPlanModal>(item.Mode.ToString(), parameters, options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await _tableRef?.RefreshTable();
+        }
+    }
+
+    private async Task OnSearchChange()
+    {
+        await _tableRef?.RefreshTable();
+    }
+}
