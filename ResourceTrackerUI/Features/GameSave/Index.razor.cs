@@ -9,7 +9,7 @@ using ResourceTrackerUI.Domain.Models.Feature.GameSave;
 
 namespace ResourceTrackerUI.Features.GameSave
 {
-    public partial class GameSave
+    public partial class Index
     {
         [Inject] 
         private IGameService GameService { get; set; }

@@ -13,7 +13,7 @@ using ResourceTrackerUI.Features.Quest;
 
 namespace ResourceTrackerUI.Features.Inventory
 {
-    public partial class Inventory
+    public partial class Index
     {
         [Inject] 
         private IQuestService QuestService { get; set; }
