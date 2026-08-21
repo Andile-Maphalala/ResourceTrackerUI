@@ -32,6 +32,8 @@
     private GameSaveState BuildPlanSaveState { get; set; }
     [Inject]
     private IDialogService dialogService { get; set; }
+    [Inject]
+    private NavigationManager Navigation { get; set; }
 
     private SearchBuildPlansQueryModel _searchModel { get; set; }
     private RtTable<SearchBuildPlansResponseModel> _tableRef;
@@ -67,8 +69,10 @@
             case FormModeEnum.Create:
                 item.Item = new SearchBuildPlansResponseModel();
                 break;
-            case FormModeEnum.Update:
             case FormModeEnum.View:
+                Navigation.NavigateTo($"/buildplandetails/{item.Item.Id}", true);
+                break;
+            case FormModeEnum.Update:
             case FormModeEnum.Delete:
                 model = await Service.GetBuildPlan(item.Item.Id, appCancellation.Token);
                 break;

@@ -1,21 +1,17 @@
 ﻿@page "/inventory"
 @using Microsoft.AspNetCore.Authorization
 @using ResourceTrackerUI.Shared.CustomComponents
+@using ResourceTrackerUI.Shared.CustomComponents.FormControls
 @attribute [Authorize]
 
 <div class="max-w-6xl mx-auto space-y-8">
 
     @* ── Header ── *@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-            <h1 class="font-h2 text-h2 text-on-surface">Inventory</h1>
-            <p class="text-body-sm text-on-surface-variant mt-1">
-                @GameSaveState.ActiveSaveName · @GameSaveState.ActiveGameName
-            </p>
-        </div>
+        <HeaderComponent Name="Inventory" Description="@GameSaveState.ActiveSaveName" ChipName="@GameSaveState.ActiveGameName" />
         <div class="flex items-center gap-3">
             @* View toggle *@
-            <div class="flex items-center glass-panel rounded-xl p-1">
+@*             <div class="flex items-center glass-panel rounded-xl p-1">
                 <button @onclick='() => SetView("location")'
                         class="px-4 py-1.5 rounded-lg font-label-caps text-label-caps transition-all
                     @(_view == "location"
@@ -30,7 +26,8 @@
                                                 : "text-on-surface-variant hover:text-primary")">
                     TOTALS
                 </button>
-            </div>
+            </div> *@
+            <RtToggle Option1Name="BY LOCATION" Option1Event='() => SetView("location")' Option2Name="TOTALS" Option2Event='() => SetView("aggregate")' />
             <button @onclick="() => OpenCreateQuestModal()"
                     class="flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary
                 font-label-caps text-label-caps rounded

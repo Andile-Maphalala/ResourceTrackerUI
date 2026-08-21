@@ -1,0 +1,63 @@
+﻿@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Domain.Models.Feature.BuildPlan
+@using ResourceTrackerUI.Shared.CustomComponents
+@using ResourceTrackerUI.Shared.CustomComponents.FormControls
+@page "/buildplandetails/{BuildPlanId:int}"
+
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <HeaderComponent Name="@_model.Name" Description="@_model.Description" ChipName="@_model.GameSaveName" />
+    <RtToggle Option1Name="SETUP" Option1Event='() => SetView("setup")' Option2Name="OVERVIEW" Option2Event='() => SetView("overview")' />
+
+    <br />
+    <div class="flex items-center justify-between mb-md">
+        <h2 class="font-h3 text-h3">Components needed</h2>
+        <button class="flex items-center gap-2 px-4 py-2 border border-primary/30 text-primary
+            font-label-caps text-label-caps rounded-lg hover:bg-primary/10 transition-colors">
+            <span class="material-symbols-outlined text-sm">add</span>
+            ADD COMPONENT
+        </button>
+    </div>
+    </div>
+
+
+@code {
+
+    [Parameter]
+    public int BuildPlanId { get; set; }
+
+    [Inject]
+    private IBuildPlanService BuildPlanService { get; set; }
+
+    private BuildPlanModel _model { get; set; } = new BuildPlanModel();
+    private string _view = "location";
+
+    protected override void OnInitialized()
+    {
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if(firstRender)
+        {
+            await LoadBuildPlan();
+        }
+    }
+
+
+    private void SetView(string view)
+    {
+        _view = view;
+        StateHasChanged();
+    }
+
+    private async Task LoadBuildPlan()
+    {
+        var response = await BuildPlanService.GetBuildPlan(BuildPlanId, appCancellation.Token);
+        if (response != null)
+        {
+            _model = response;
+            StateHasChanged();
+        }
+    }
+}

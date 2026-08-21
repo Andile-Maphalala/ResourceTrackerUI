@@ -1,0 +1,48 @@
+﻿<div class="flex items-center gap-1 bg-surface-container-low rounded-lg p-1 w-fit mb-lg">
+    <button @onclick="() => SelectOption(1)"
+            class="@GetButtonClass(1)">
+        @Option1Name
+    </button>
+    <button @onclick="() => SelectOption(2)"
+            class="@GetButtonClass(2)">
+        @Option2Name
+    </button>
+</div>
+
+@code {
+
+    [Parameter]
+    public string Option1Name { get; set; }
+
+    [Parameter]
+    public EventCallback<int> Option1Event { get; set; }
+
+    [Parameter]
+    public string Option2Name { get; set; }
+
+    [Parameter]
+    public EventCallback<int> Option2Event { get; set; }
+
+    private int selectedOption = 1;
+
+    private async Task SelectOption(int option)
+    {
+        selectedOption = option;
+
+        if (option == 1)
+            await Option1Event.InvokeAsync();
+        else
+            await Option2Event.InvokeAsync();
+    }
+
+    private string GetButtonClass(int option)
+    {
+        var baseClasses = "px-5 py-2 rounded font-label-caps text-label-caps transition-colors";
+        var activeClasses = "bg-primary text-on-primary";
+        var inactiveClasses = "text-on-surface-variant hover:text-primary";
+
+        return option == selectedOption
+            ? $"{baseClasses} {activeClasses}"
+            : $"{baseClasses} {inactiveClasses}";
+    }
+}
