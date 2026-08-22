@@ -4,9 +4,9 @@
 @using ResourceTrackerUI.Domain.Models.Common
 @using ResourceTrackerUI.Domain.Models.Feature.Inventory
 @using ResourceTrackerUI.Domain.Models.Feature.Quest
-@using ResourceTrackerUI.Features.Inventory.Templates
 @using ResourceTrackerUI.Features.Quest
 @using ResourceTrackerUI.Shared.CustomComponents.FormControls
+@using ResourceTrackerUI.Shared.CustomComponents.Templates
 <div class="glass-panel rounded-xl overflow-hidden">
 
     @* Location header *@
@@ -264,6 +264,7 @@
 
     private List<AutotableActionVisibilityModel> _actionVisibilities = new()
     {
+        new() { Mode = FormModeEnum.Create, Visible = true },
         new() { Mode = FormModeEnum.Update, Visible = true },
         new() { Mode = FormModeEnum.Delete, Visible = true },
     };
@@ -274,13 +275,13 @@
         {
             DisplayName = "COMPONENT",
             Order = 1,
-            Template = ComponentTemplate
+            Template = GetComponentTemplate
         },
         new CustomColumnDenefition<SearchInventoryResponseModel>
         {
             DisplayName = "TYPE",
             Order = 2,
-            Template = TypeTemplate
+            Template = GetTypeTemplate
         },
         new CustomColumnDenefition<SearchInventoryResponseModel>
         {
@@ -290,33 +291,22 @@
         }
     };
 
-    private RenderFragment<SearchInventoryResponseModel> ComponentTemplate => item => @<div class="flex items-center gap-3">
-        @if (!string.IsNullOrEmpty(item.ComponentImageUrl))
-        {
-            <img src="@item.ComponentImageUrl" class="w-8 h-8 rounded object-cover" />
-        }
-        else
-        {
-            <div class="w-8 h-8 rounded bg-surface-container flex items-center justify-center">
-                <span class="material-symbols-outlined text-on-surface-variant text-sm">category</span>
-            </div>
-        }
-        <span class="font-body text-on-surface">@item.ComponentName</span>
-    </div>;
+    private RenderFragment<SearchInventoryResponseModel> GetComponentTemplate => item =>@<ComponentTemplate Name="@item.ComponentName" ImageUrl="@item.ComponentImageUrl" />;
 
-    private RenderFragment<SearchInventoryResponseModel> TypeTemplate => item => @<span class="text-[10px] font-label-caps px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant">
-        @item.ComponentTypeName
-    </span>;
+    private RenderFragment<SearchInventoryResponseModel> GetTypeTemplate => item =>@<TypeTemplate Name="@item.ComponentTypeName" />;
 
     private RenderFragment<SearchInventoryResponseModel> GetQuantityTemplate => item =>@<QuantityTemplate Quantity="item.AmountAquired"
                                           OnIncrement="() => IncrementQuantity(item)"
-                                          OnDecrement="() => DecrementQuantity(item)" />
-    ;
+                                          OnDecrement="() => DecrementQuantity(item)" />;
+
 
     private void HandleItemAction(ActionModel<SearchInventoryResponseModel> action)
     {
         switch (action.Mode)
         {
+            case FormModeEnum.Create:
+                OpenAddItemModal();
+                break;
             case FormModeEnum.Update:
                 OpenEditItemModal(action.Item);
                 break;

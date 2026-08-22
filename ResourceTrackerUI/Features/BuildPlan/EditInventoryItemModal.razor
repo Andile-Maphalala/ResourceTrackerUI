@@ -1,0 +1,21 @@
+﻿@using ResourceTrackerUI.Domain.Models.Feature.BuildPlanComponent
+@using ResourceTrackerUI.Domain.Models.Feature.Inventory
+@using ResourceTrackerUI.Shared.CustomComponents.FormControls
+
+<RtForm TModel="BuildPlanComponentModel" Model="Model" FormMode="FormMode" OnSubmit="Submit" OnCancel="Cancel">
+    <MudGrid>
+        <MudItem xs="12" sm="6">
+            <RtSelect @bind-Value="Model.ComponentId"
+                      For="@(() => Model.ComponentId)"
+                      LoadData="OnComponentDataLoad"
+                      Disabled="_disableDropdown"
+                      EnableImages="true" 
+                      EnableSearch="true"/>
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <RtInput @bind-Value="Model.QuantityNeeded" For="@(() => Model.QuantityNeeded)" />
+        </MudItem>
+    </MudGrid>
+</RtForm>
+
+

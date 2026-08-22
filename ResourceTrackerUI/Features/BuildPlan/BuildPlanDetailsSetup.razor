@@ -1,0 +1,170 @@
+﻿@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Domain.Common
+@using ResourceTrackerUI.Domain.Enums
+@using ResourceTrackerUI.Domain.Models.Common
+@using ResourceTrackerUI.Domain.Models.Feature.BuildPlan
+@using ResourceTrackerUI.Domain.Models.Feature.BuildPlanComponent
+@using ResourceTrackerUI.Shared.CustomComponents.FormControls
+@using ResourceTrackerUI.Shared.CustomComponents.Templates
+<RtTable @ref="_tableRef"
+TItem="BuildPlanComponentResponseModel"
+         LoadData="LoadItems"
+         CustomColumns="_customColumns"
+         OnAction="HandleItemAction"
+         ActionVisibilities="_actionVisibilities"
+         ShowAllActionsExceptBulk="false"
+         HasAdvancedSearch="false"
+         EnableColumnSave="false"
+         EnableColumChooser="false"
+         DefaultPageSize="100"
+         Dense="true"
+         Hover="true"
+         Bordered="false"
+         Striped="false" />
+@code {
+    [Parameter]
+    public int BuildPlanId { get; set; }
+
+    [Inject]
+    private IBuildPlanComponentService BuildPlanComponentService { get; set; }
+    [Inject]
+    private IDialogService DialogService { get; set; }
+
+
+    private RtTable<BuildPlanComponentResponseModel>? _tableRef;
+    private string _search { get; set; } = string.Empty;
+
+    #region Table
+
+    private async Task<PageableResponseModel<BuildPlanComponentResponseModel>> LoadItems(PageableRequestModel request)
+    {
+        SearchBuildPlanComponentQueryModel requestSearch = new SearchBuildPlanComponentQueryModel();
+        requestSearch.AssignPageableRequestModel(request);
+        requestSearch.BuildPlanId = BuildPlanId;
+
+        var response = await BuildPlanComponentService.SearchBuildPlanComponents(requestSearch, appCancellation.Token);
+
+
+        return response;
+    }
+
+    private List<AutotableActionVisibilityModel> _actionVisibilities = new()
+    {
+        new() { Mode = FormModeEnum.Create, Visible = true },
+        new() { Mode = FormModeEnum.Update, Visible = true },
+        new() { Mode = FormModeEnum.Delete, Visible = true },
+    };
+
+    private List<CustomColumnDenefition<BuildPlanComponentResponseModel>> _customColumns => new()
+    {
+        new CustomColumnDenefition<BuildPlanComponentResponseModel>
+        {
+            DisplayName = "COMPONENT",
+            Order = 1,
+            Template = GetComponentTemplate
+        },
+        new CustomColumnDenefition<BuildPlanComponentResponseModel>
+        {
+            DisplayName = "TYPE",
+            Order = 2,
+            Template = GetTypeTemplate
+        },
+        new CustomColumnDenefition<BuildPlanComponentResponseModel>
+        {
+            DisplayName = "QUANTITY",
+            Order = 3,
+            Template = GetQuantityTemplate
+        }
+    };
+
+    private RenderFragment<BuildPlanComponentResponseModel> GetComponentTemplate => item => @<ComponentTemplate Name="@item.ComponentName" ImageUrl="@item.ComponentImageUrl" />;
+
+    private RenderFragment<BuildPlanComponentResponseModel> GetTypeTemplate => item => @<TypeTemplate Name="@item.ComponentTypeName" />;
+
+    private RenderFragment<BuildPlanComponentResponseModel> GetQuantityTemplate => item => @<QuantityTemplate Quantity="item.QuantityNeeded"
+                                                                                                          OnIncrement="() => IncrementQuantity(item)"
+                                                                                                          OnDecrement="() => DecrementQuantity(item)" />
+    ;
+
+    #endregion
+
+    private Task OpenAddItemModal() => OpenItemModal(null, FormModeEnum.Create);
+
+    private Task OpenEditItemModal(BuildPlanComponentResponseModel item) => OpenItemModal(item, FormModeEnum.Update);
+
+    private Task OpenDeleteItemModal(BuildPlanComponentResponseModel item) => OpenItemModal(item, FormModeEnum.Delete);
+
+    private async Task OpenItemModal(BuildPlanComponentResponseModel? item, FormModeEnum mode)
+    {
+
+        var model = new BuildPlanComponentModel { BuildPlanId = BuildPlanId };
+        if (item != null)
+        {
+            model = new BuildPlanComponentModel
+            {
+                BuildPlanId = BuildPlanId,
+                ComponentId = item.ComponentId,
+                QuantityNeeded = item.QuantityNeeded,
+                Order = item.Order,
+                Id = item.Id
+            };
+        }
+        var parameters = new DialogParameters<EditInventoryItemModal>
+            {
+                { x => x.Model, model },
+                { x => x.FormMode, mode }
+            };
+
+        var options = new DialogOptions { CloseOnEscapeKey = true, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<EditInventoryItemModal>(mode.ToString(), parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            StateHasChanged();
+            await _tableRef?.RefreshTable();
+        }
+    }
+
+    
+    private void HandleItemAction(ActionModel<BuildPlanComponentResponseModel> action)
+    {
+        switch (action.Mode)
+        {
+            case FormModeEnum.Create:
+                OpenAddItemModal();
+                break;
+            case FormModeEnum.Update:
+                OpenEditItemModal(action.Item);
+                break;
+            case FormModeEnum.Delete:
+                OpenDeleteItemModal(action.Item);
+                break;
+        }
+    }
+
+    private async Task IncrementQuantity(BuildPlanComponentResponseModel item)
+    {
+        item.QuantityNeeded++;
+        await SaveQuantity(item);
+    }
+
+    private async Task DecrementQuantity(BuildPlanComponentResponseModel item)
+    {
+        if (item.QuantityNeeded <= 0) return;
+        item.QuantityNeeded--;
+        await SaveQuantity(item);
+    }
+
+    private async Task SaveQuantity(BuildPlanComponentResponseModel item)
+    {
+        var model = new BuildPlanComponentModel
+        {
+            Id = item.Id,
+            ComponentId = item.ComponentId,
+            QuantityNeeded = item.QuantityNeeded
+        };
+        await BuildPlanComponentService.UpdateBuildPlanComponent(model, appCancellation.Token);
+        StateHasChanged();
+    }
+}

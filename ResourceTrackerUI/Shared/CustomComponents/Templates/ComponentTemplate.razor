@@ -1,0 +1,21 @@
+﻿<div class="flex items-center gap-3">
+    @if (!string.IsNullOrEmpty(ImageUrl))
+    {
+        <img src="@ImageUrl" class="w-8 h-8 rounded object-cover" />
+    }
+    else
+    {
+        <div class="w-8 h-8 rounded bg-surface-container flex items-center justify-center">
+            <span class="material-symbols-outlined text-on-surface-variant text-sm">category</span>
+        </div>
+    }
+    <span class="font-body text-on-surface">@Name</span>
+</div>
+
+@code {
+    [Parameter]
+    public string Name { get; set; }
+
+    [Parameter]
+    public string ImageUrl { get; set; }
+}
