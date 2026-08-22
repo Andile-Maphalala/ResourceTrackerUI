@@ -1,0 +1,77 @@
+﻿@using ResourceTrackerUI.Domain.Enums
+<span class="@BadgeClasses() px-md py-xs rounded-full font-label-caps text-[10px]">
+    @Label()
+</span>
+
+@code {
+    [Parameter]
+    public int RequiredAmount { get; set; }
+    [Parameter]
+    public int AvailableAmount { get; set; }
+    [Parameter]
+    public int MissingAmount { get; set; }
+
+    [Parameter]
+    public string? LabelOverride { get; set; }
+
+    private RequirementStatusEnum _status { get; set; }
+
+    protected override void OnInitialized()
+    {
+        _status = GetRequirementStatus();
+    }
+
+    private string BadgeClasses()
+    {
+        switch (_status)
+        {
+            case RequirementStatusEnum.Complete:
+                return "bg-primary/20 text-primary";
+            case RequirementStatusEnum.Partial:
+                return "bg-secondary-container/20 text-secondary";
+            case RequirementStatusEnum.Missing:
+                return "bg-error-container/20 text-error";
+            default:
+                return "bg-surface-container text-on-surface-variant";
+        }
+    }
+
+    private string Label()
+    {
+        if (LabelOverride != null)
+        {
+            return LabelOverride;
+        }
+        switch (_status)
+        {
+            case RequirementStatusEnum.Complete:
+                return "COMPLETE";
+            case RequirementStatusEnum.Partial:
+                return "PARTIAL";
+            case RequirementStatusEnum.Missing:
+                return "MISSING";
+            default:
+                return _status.ToString().ToUpperInvariant();
+        }
+    }
+
+    private RequirementStatusEnum GetRequirementStatus()
+    {
+        if (MissingAmount > 0)
+        {
+            return RequirementStatusEnum.Missing;
+        }
+        else if (AvailableAmount > 0 && MissingAmount == 0)
+        {
+            return RequirementStatusEnum.Complete;
+        }
+        else if (AvailableAmount == 0 && MissingAmount == 0)
+        {
+            return RequirementStatusEnum.Partial;
+        }
+        else
+        {
+            return RequirementStatusEnum.Missing;
+        }
+    }
+}
