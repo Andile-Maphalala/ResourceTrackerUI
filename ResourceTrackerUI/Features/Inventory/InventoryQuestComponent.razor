@@ -1,8 +1,12 @@
 ﻿@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Domain.Common
 @using ResourceTrackerUI.Domain.Enums
+@using ResourceTrackerUI.Domain.Models.Common
 @using ResourceTrackerUI.Domain.Models.Feature.Inventory
 @using ResourceTrackerUI.Domain.Models.Feature.Quest
+@using ResourceTrackerUI.Features.Inventory.Templates
 @using ResourceTrackerUI.Features.Quest
+@using ResourceTrackerUI.Shared.CustomComponents.FormControls
 <div class="glass-panel rounded-xl overflow-hidden">
 
     @* Location header *@
@@ -61,136 +65,21 @@
     @if (_isExpanded)
     {
         <div class="p-5">
-            @if (_isLoading)
-            {
-                <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
-            }
-            else
-            {
-                @* Search within location *@
-                <div class="flex _items-center gap-3 mb-4">
-                    <div class="flex-1 flex _items-center gap-2 bg-surface-container
-                        border border-white/10 rounded-lg px-3 py-2">
-                        <span class="material-symbols-outlined text-on-surface-variant text-sm">
-                            search
-                        </span>
-                        <input @bind="_search"
-                               @bind:event="oninput"
-                               placeholder="Search items..."
-                               class="bg-transparent text-on-surface text-body w-full
-                        outline-none placeholder:text-on-surface-variant" />
-                    </div>
-                    <button @onclick="() => OpenAddItemModal()"
-                            class="flex _items-center gap-2 px-4 py-2 border border-primary/30
-                        text-primary font-label-caps text-label-caps rounded-lg
-                        hover:bg-primary/10 transition-colors flex-shrink-0">
-                        <span class="material-symbols-outlined text-sm">add</span>
-                        ADD ITEM
-                    </button>
-                </div>
-
-                @* Items table *@
-                @if (_items == null || !_items.Any())
-                {
-                    <div class="text-center py-8 text-on-surface-variant">
-                        <span class="material-symbols-outlined text-3xl">inventory_2</span>
-                        <p class="text-body-sm mt-2">No items here yet.</p>
-                    </div>
-                }
-                else
-                {
-                    var filtered = FilterItems();
-                    <div class="glass-panel rounded-xl overflow-hidden">
-                        <table class="w-full text-left border-collapse">
-                            <thead class="bg-surface-container-highest/50 border-b border-white/5">
-                                <tr>
-                                    <th class="px-5 py-3 font-label-caps text-label-caps text-on-surface-variant">
-                                        COMPONENT
-                                    </th>
-                                    <th class="px-5 py-3 font-label-caps text-label-caps text-on-surface-variant">
-                                        TYPE
-                                    </th>
-                                    <th class="px-5 py-3 font-label-caps text-label-caps text-on-surface-variant">
-                                        QUANTITY
-                                    </th>
-                                    <th class="px-5 py-3"></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var item in filtered)
-                                {
-                                    <tr class="border-b border-white/5 hover:bg-white/5 transition-colors group">
-                                        <td class="px-5 py-3">
-                                            <div class="flex _items-center gap-3">
-                                                @if (!string.IsNullOrEmpty(item.ComponentImageUrl))
-                                                {
-                                                    <img src="@item.ComponentImageUrl"
-                                                         class="w-8 h-8 rounded object-cover" />
-                                                }
-                                                else
-                                                {
-                                                    <div class="w-8 h-8 rounded bg-surface-container
-                                                        flex _items-center justify-center">
-                                                        <span class="material-symbols-outlined text-on-surface-variant text-sm">
-                                                            category
-                                                        </span>
-                                                    </div>
-                                                }
-                                                <span class="font-body text-on-surface">
-                                                    @item.ComponentName
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td class="px-5 py-3">
-                                            <span class="text-[10px] font-label-caps px-2 py-0.5 rounded-full
-                                                bg-surface-container text-on-surface-variant">
-                                                @item.ComponentTypeName
-                                            </span>
-                                        </td>
-                                        <td class="px-5 py-3">
-                                            @* Inline quantity editor *@
-                                            <div class="flex _items-center gap-2">
-                                                <button @onclick="() => DecrementQuantity(item)"
-                                                        class="w-6 h-6 rounded bg-surface-container
-                                                    text-on-surface-variant hover:text-primary
-                                                    hover:bg-primary/10 transition-colors
-                                                    flex _items-center justify-center">
-                                                    <span class="material-symbols-outlined text-sm">remove</span>
-                                                </button>
-                                                <span class="font-data-mono text-data-mono text-primary w-8 text-center">
-                                                    @item.AmountAquired
-                                                </span>
-                                                <button @onclick="() => IncrementQuantity(item)"
-                                                        class="w-6 h-6 rounded bg-surface-container
-                                                    text-on-surface-variant hover:text-primary
-                                                    hover:bg-primary/10 transition-colors
-                                                    flex _items-center justify-center">
-                                                    <span class="material-symbols-outlined text-sm">add</span>
-                                                </button>
-                                            </div>
-                                        </td>
-                                        <td class="px-5 py-3 text-right">
-                                            <div class="flex _items-center justify-end gap-1
-                                                opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button @onclick="() => OpenEditItemModal(item)"
-                                                        class="p-1 text-on-surface-variant hover:text-primary
-                                                    rounded transition-colors">
-                                                    <span class="material-symbols-outlined text-sm">edit</span>
-                                                </button>
-                                                <button @onclick="() => OpenDeleteItemModal(item)"
-                                                        class="p-1 text-on-surface-variant hover:text-error
-                                                    rounded transition-colors">
-                                                    <span class="material-symbols-outlined text-sm">delete</span>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
-            }
+            <RtTable @ref="_tableRef"
+         TItem="SearchInventoryResponseModel"
+         LoadData="LoadItems"
+         CustomColumns="_customColumns"
+         OnAction="HandleItemAction"
+         ActionVisibilities="_actionVisibilities"
+         ShowAllActionsExceptBulk="false"
+         HasAdvancedSearch="false"
+         EnableColumnSave="false"
+         EnableColumChooser="false"
+         DefaultPageSize="100"
+         Dense="true"
+         Hover="true"
+         Bordered="false"
+         Striped="false" />
         </div>
     }
 </div>
@@ -217,9 +106,10 @@
     private bool _isLoading { get; set; } = true;
     private string _search { get; set; } = string.Empty;
     private QuestUpdateTypeEnum _updateType { get; set; } = QuestUpdateTypeEnum.InitiatedQuestItems;
+    private RtTable<SearchInventoryResponseModel>? _tableRef;
+
     protected override async Task OnInitializedAsync()
     {
-        await LoadItemsForQuest();
     }
 
     private async Task IncrementQuantity(SearchInventoryResponseModel item)
@@ -253,22 +143,6 @@
         _isExpanded = !_isExpanded;
     }
 
-    private async Task LoadItemsForQuest()
-    {
-        _isLoading = true;
-        StateHasChanged();
-
-        var response = await InventoryService.SearchInventory(new SearchInventoryQueryModel
-        {
-            QuestId = Quest.Id,
-            PageSize = int.MaxValue,
-            OrderBy = "ComponentName"
-        }, appCancellation.Token);
-
-        _items = response.Data.ToList();
-        await QuestDataUpdate();
-        _isLoading = false;
-    }
 
     private Task OpenCreateQuestModal() => OpenQuestModal(FormModeEnum.Create);
     private Task OpenEditQuestModal() => OpenQuestModal( FormModeEnum.Update);
@@ -371,7 +245,6 @@
         {
             _updateType = QuestUpdateTypeEnum.ItemsUpdated;
             await QuestDataUpdate();
-            await LoadItemsForQuest();
             StateHasChanged();
         }
     }
@@ -387,6 +260,90 @@
                 UpdateType = _updateType
             });
         }
+    }
+
+    private List<AutotableActionVisibilityModel> _actionVisibilities = new()
+    {
+        new() { Mode = FormModeEnum.Update, Visible = true },
+        new() { Mode = FormModeEnum.Delete, Visible = true },
+    };
+
+    private List<CustomColumnDenefition<SearchInventoryResponseModel>> _customColumns => new()
+    {
+        new CustomColumnDenefition<SearchInventoryResponseModel>
+        {
+            DisplayName = "COMPONENT",
+            Order = 1,
+            Template = ComponentTemplate
+        },
+        new CustomColumnDenefition<SearchInventoryResponseModel>
+        {
+            DisplayName = "TYPE",
+            Order = 2,
+            Template = TypeTemplate
+        },
+        new CustomColumnDenefition<SearchInventoryResponseModel>
+        {
+            DisplayName = "QUANTITY",
+            Order = 3,
+            Template = GetQuantityTemplate
+        }
+    };
+
+    private RenderFragment<SearchInventoryResponseModel> ComponentTemplate => item => @<div class="flex items-center gap-3">
+        @if (!string.IsNullOrEmpty(item.ComponentImageUrl))
+        {
+            <img src="@item.ComponentImageUrl" class="w-8 h-8 rounded object-cover" />
+        }
+        else
+        {
+            <div class="w-8 h-8 rounded bg-surface-container flex items-center justify-center">
+                <span class="material-symbols-outlined text-on-surface-variant text-sm">category</span>
+            </div>
+        }
+        <span class="font-body text-on-surface">@item.ComponentName</span>
+    </div>;
+
+    private RenderFragment<SearchInventoryResponseModel> TypeTemplate => item => @<span class="text-[10px] font-label-caps px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant">
+        @item.ComponentTypeName
+    </span>;
+
+    private RenderFragment<SearchInventoryResponseModel> GetQuantityTemplate => item =>@<QuantityTemplate Quantity="item.AmountAquired"
+                                          OnIncrement="() => IncrementQuantity(item)"
+                                          OnDecrement="() => DecrementQuantity(item)" />
+    ;
+
+    private void HandleItemAction(ActionModel<SearchInventoryResponseModel> action)
+    {
+        switch (action.Mode)
+        {
+            case FormModeEnum.Update:
+                OpenEditItemModal(action.Item);
+                break;
+            case FormModeEnum.Delete:
+                OpenDeleteItemModal(action.Item);
+                break;
+        }
+    }
+
+    private async Task HandleSearch(string value)
+    {
+        _search = value;
+        await _tableRef?.RefreshTable();
+    }
+
+    private async Task<PageableResponseModel<SearchInventoryResponseModel>> LoadItems(PageableRequestModel request)
+    {
+        SearchInventoryQueryModel requestSearch = new SearchInventoryQueryModel();
+        requestSearch.AssignPageableRequestModel(request);
+        requestSearch.QuestId = Quest.Id;
+
+        var response = await InventoryService.SearchInventory(requestSearch, appCancellation.Token);
+
+        _items = response.Data.ToList();
+        await QuestDataUpdate();
+
+        return response;
     }
     
 }
