@@ -8,7 +8,7 @@
 @page "/buildplandetails/{BuildPlanId:int}"
 
     <HeaderComponent Name="@_model.Name" Description="@_model.Description" ChipName="@_model.GameSaveName" />
-    <RtToggle Option1Name="SETUP" Option1Event='() => SetView("setup")' Option2Name="OVERVIEW" Option2Event='() => SetView("overview")' />
+    <RtToggle Option1Name="OVERVIEW" Option1Event='() => SetView("overview")' Option2Name="SETUP" Option2Event='() => SetView("setup")' />
 
 
 @if (_isLoading)
