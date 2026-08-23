@@ -7,6 +7,8 @@
 @using ResourceTrackerUI.Shared.CustomComponents.FormControls
 @using ResourceTrackerUI.Shared.CustomComponents.Templates
 <RtTable @ref="_tableRef"
+
+
 TItem="BuildPlanComponentResponseModel"
          LoadData="LoadItems"
          CustomColumns="_customColumns"
@@ -21,10 +23,13 @@ TItem="BuildPlanComponentResponseModel"
          Hover="true"
          Bordered="false"
          Striped="false" />
-@code {
-    [Parameter]
-    public int BuildPlanId { get; set; }
 
+<LinkedLocationsCard BuildPlanId="@Model.Id" BuildPlanName="@Model.Name" GameSaveId="@Model.GameSaveId" />
+@code {
+    
+    [Parameter]
+    public BuildPlanModel Model { get; set; } = new BuildPlanModel();
+   
     [Inject]
     private IBuildPlanComponentService BuildPlanComponentService { get; set; }
     [Inject]
@@ -40,7 +45,7 @@ TItem="BuildPlanComponentResponseModel"
     {
         SearchBuildPlanComponentQueryModel requestSearch = new SearchBuildPlanComponentQueryModel();
         requestSearch.AssignPageableRequestModel(request);
-        requestSearch.BuildPlanId = BuildPlanId;
+        requestSearch.BuildPlanId = Model.Id;
 
         var response = await BuildPlanComponentService.SearchBuildPlanComponents(requestSearch, appCancellation.Token);
 
@@ -97,12 +102,12 @@ TItem="BuildPlanComponentResponseModel"
     private async Task OpenItemModal(BuildPlanComponentResponseModel? item, FormModeEnum mode)
     {
 
-        var model = new BuildPlanComponentModel { BuildPlanId = BuildPlanId };
+        var model = new BuildPlanComponentModel { BuildPlanId = Model.Id };
         if (item != null)
         {
             model = new BuildPlanComponentModel
             {
-                BuildPlanId = BuildPlanId,
+                BuildPlanId = Model.Id,
                 ComponentId = item.ComponentId,
                 QuantityNeeded = item.QuantityNeeded,
                 Order = item.Order,

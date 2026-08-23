@@ -1,0 +1,75 @@
+﻿@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Domain.Enums
+@using ResourceTrackerUI.Domain.Models.Feature.BuildPlanQuest
+@using ResourceTrackerUI.Domain.Models.Feature.Quest
+@using ResourceTrackerUI.Shared.CustomComponents.FormControls
+<RtForm TModel="GetBuildPlanQuestQueryModel" Model="Model" FormMode="FormMode" OnSubmit="Submit" OnCancel="Cancel">
+    <MudGrid>
+        <MudItem xs="12" sm="12">
+            <RtInput @bind-Value="Model.BuildPlanName" For="@(() => Model.BuildPlanName)" Disabled="true"/>
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <RtSelect @bind-Value="Model.QuestId"
+                      For="@(() => Model.QuestId)"
+                      LoadData="OnDataLoad"
+                      Disabled="_disableDropdown"
+                      EnableSearch="true"/>
+        </MudItem>
+    </MudGrid>
+</RtForm>
+
+@code {
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+    [Inject]
+    private IBuildPlanQuestService BuildPlanQuestService { get; set; }
+    [Inject]
+    private IQuestService QuestService { get; set; }
+    [Inject]
+    private ISnackbar Snackbar { get; set; }
+
+    [Parameter]
+    public GetBuildPlanQuestQueryModel Model { get; set; } = new();
+    [Parameter]
+    public FormModeEnum FormMode { get; set; }
+
+    private SearchQuestsQueryModel _searchModel { get; set; }
+    private bool _disableDropdown { get; set; } = false;
+
+    private async Task Submit()
+    {
+        switch (FormMode)
+        {
+            case FormModeEnum.Create:
+                await BuildPlanQuestService.CreateBuildPlanQuest(Model.BuildPlanId, Model.QuestId, appCancellation.Token); break;
+            case FormModeEnum.Delete:
+                await BuildPlanQuestService.DeleteBuildPlanQuest(Model.BuildPlanId, Model.QuestId, appCancellation.Token); break;
+        }
+        MudDialog.Close();
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        if (FormMode == FormModeEnum.Delete)
+        {
+            _disableDropdown = true;
+
+        }
+        _searchModel = new SearchQuestsQueryModel
+        {
+            PageSize = int.MaxValue,
+            OrderBy = "Name",
+            GameSaveId = Model.GameSaveId
+        };
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task<IEnumerable<object>> OnDataLoad()
+    {
+        var data = await QuestService.SearchQuest(_searchModel, appCancellation.Token);
+        return data.Data.ToList();
+    }
+}

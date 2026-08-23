@@ -17,8 +17,8 @@ else
 {
     <div class="flex flex-col gap-4">
         <div class="flex items-center gap-2">
-            <MudCheckBox @bind-Value="_includeInventory" Label="Include Inventory" Color="Color.Warning" CheckedIcon="@Icons.Material.Filled.Star" UncheckedIcon="@Icons.Material.Filled.StarOutline"></MudCheckBox>
-            <MudCheckBox @bind-Value="_includeFacilityRequirements" Label="Include Facility Requirements" Color="Color.Warning" CheckedIcon="@Icons.Material.Filled.Star" UncheckedIcon="@Icons.Material.Filled.StarOutline"></MudCheckBox>
+            <MudCheckBox T="bool" Value="_includeInventory" Label="Include Inventory" Color="Color.Warning" CheckedIcon="@Icons.Material.Filled.Star" UncheckedIcon="@Icons.Material.Filled.StarOutline" ValueChanged="UpdateInventory"></MudCheckBox>
+            <MudCheckBox T="bool" Value="_includeFacilityRequirements" Label="Include Facility Requirements" Color="Color.Warning" CheckedIcon="@Icons.Material.Filled.Star" UncheckedIcon="@Icons.Material.Filled.StarOutline" ValueChanged="UpdateFacilityRequirements"></MudCheckBox>
         </div>
     </div>
 
@@ -77,13 +77,26 @@ else
         }
     }
 
-    private async Task RefreshData()
+
+    private async Task UpdateInventory(bool value)
     {
-        _isLoading = true;
-        _model = await BuildPlanRequirementService.GetBuildPlanRequirements(BuildPlanId, _includeFacilityRequirements, _includeInventory, appCancellation.Token);
-        _isLoading = false;
-        StateHasChanged();
+        _includeInventory = value;
+        await RefreshData();
     }
+
+    private async Task UpdateFacilityRequirements(bool value)
+    {
+        _includeFacilityRequirements = value;
+        await RefreshData();
+    }
+
+     private async Task RefreshData()
+     {
+         _isLoading = true;
+         _model = await BuildPlanRequirementService.GetBuildPlanRequirements(BuildPlanId, _includeFacilityRequirements, _includeInventory, appCancellation.Token);
+         _isLoading = false;
+         await InvokeAsync(StateHasChanged);
+     }
 
     #region Table
 

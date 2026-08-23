@@ -1,0 +1,159 @@
+﻿
+@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Domain.Enums
+@using ResourceTrackerUI.Domain.Models.Feature.BuildPlanQuest
+@using ResourceTrackerUI.Domain.Models.Feature.Quest
+
+<div class="glass-panel rounded-xl p-lg mb-xl">
+    <div class="flex items-center gap-md mb-md">
+        <span class="material-symbols-outlined text-primary">location_on</span>
+        <h2 class="font-h2 text-h2">Linked Locations</h2>
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="flex items-center justify-center h-32">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+        </div>
+    }
+    else
+    {
+        <div class="flex flex-wrap gap-sm mb-md">
+            @foreach (var location in _Locations)
+            {
+                <div class="flex items-center gap-xs bg-surface-container px-md py-xs rounded-full">
+                    <span class="text-body-sm font-body-sm text-on-surface">@location.Name</span>
+                    <span class="material-symbols-outlined text-on-surface-variant text-sm cursor-pointer hover:text-error"
+                          @onclick="() => RemoveLocation(location)">
+                        close
+                    </span>
+                </div>
+            }
+            @if (!_Locations.Any())
+            {
+                <span class="text-body-sm font-body-sm text-on-surface-variant">No locations linked yet.</span>
+            }
+        </div>
+
+        <div class="flex items-center gap-sm">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="AddLocation">
+                ADD
+            </MudButton>
+        </div>
+    }
+
+</div>
+
+@code {
+
+    [Parameter]
+    public int BuildPlanId { get; set; }
+    [Parameter]
+    public string BuildPlanName { get; set; }
+    [Parameter]
+    public int GameSaveId { get; set; }
+
+    [Inject]
+    private IQuestService Service { get; set; }
+    [Inject]
+    private IDialogService DialogService { get; set; }
+
+
+    private List<SearchQuestsResponseModel> _Locations { get; set; } = new();
+    private bool _isLoading { get; set; } = true;
+    private SearchQuestsQueryModel _searchModel { get; set; } = new SearchQuestsQueryModel();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _searchModel = new SearchQuestsQueryModel
+            {
+                GameSaveId = GameSaveId,
+                OrderBy = "Name",
+                OrderDirection = OrderDirectionEnum.Ascending,
+                PageSize = int.MaxValue
+            };
+        await LoadLocations();
+    }
+
+    private async Task LoadLocations()
+    {
+        _isLoading = true;
+        var response = await Service.SearchQuest(_searchModel, appCancellation.Token);
+        if (response != null)
+        {
+            _Locations = response.Data.ToList();
+        }
+        _isLoading = false;
+    }
+
+    private async Task AddLocation()
+    {
+        var model = new GetBuildPlanQuestQueryModel
+        {
+            BuildPlanId = BuildPlanId,
+            BuildPlanName = BuildPlanName,
+            GameSaveId = GameSaveId,
+            QuestId = 0,
+        };
+
+        await OpenAddLocationDialog(model, FormModeEnum.Create);
+    }
+
+    private async Task RemoveLocation(SearchQuestsResponseModel location)
+    {
+        var model = new GetBuildPlanQuestQueryModel
+        {
+            BuildPlanId = BuildPlanId,
+            BuildPlanName = BuildPlanName,
+            GameSaveId = location.GameSaveId,
+            QuestId = location.Id,
+        };
+
+        await OpenAddLocationDialog(model, FormModeEnum.Delete);
+        _Locations.Remove(location);
+    }
+
+    private async Task OpenAddLocationDialog(GetBuildPlanQuestQueryModel model, FormModeEnum formMode)
+    {
+        var parameters = new DialogParameters<BuildPlanQuestModal>
+            {
+                { x => x.FormMode, formMode},
+                { x => x.Model, model }
+            };
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+        var dialog = await DialogService.ShowAsync<BuildPlanQuestModal>("Add Location", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            if (formMode == FormModeEnum.Create)
+            {
+                var id = result.Data as int?;
+                if (id.HasValue)
+                {
+                    var newLocation = await Service.GetQuest(id.Value, appCancellation.Token);
+                    if (newLocation != null)
+                    {
+                        SearchQuestsResponseModel location = new SearchQuestsResponseModel
+                        {
+                            Id = newLocation.Id,
+                            Name = newLocation.Name,
+                            GameSaveId = newLocation.GameSaveId,
+                            Description = newLocation.Description,
+                            Location = newLocation.Location,
+                            ImageUrl = newLocation.ImageUrl
+                        };
+                        _Locations.Add(location);
+                        await InvokeAsync(StateHasChanged);
+                    }
+                }   
+            }
+        }
+    }
+}
