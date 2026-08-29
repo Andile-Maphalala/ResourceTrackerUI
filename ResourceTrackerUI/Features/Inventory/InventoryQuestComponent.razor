@@ -134,6 +134,7 @@
             AmountAquired = item.AmountAquired
         };
         await InventoryService.UpdateInventory(model, appCancellation.Token);
+        await _tableRef.RefreshTable();
         await QuestDataUpdate();
         StateHasChanged();
     }
@@ -244,6 +245,7 @@
         if (!result.Canceled)
         {
             _updateType = QuestUpdateTypeEnum.ItemsUpdated;
+            await _tableRef?.RefreshTable();
             await QuestDataUpdate();
             StateHasChanged();
         }

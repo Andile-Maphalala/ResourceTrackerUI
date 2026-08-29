@@ -34,19 +34,23 @@
     [Parameter]
     public FormModeEnum FormMode { get; set; }
 
+
     private SearchQuestsQueryModel _searchModel { get; set; }
     private bool _disableDropdown { get; set; } = false;
+    private int _selectedQuestId { get; set; } = 0;
 
     private async Task Submit()
     {
         switch (FormMode)
         {
             case FormModeEnum.Create:
-                await BuildPlanQuestService.CreateBuildPlanQuest(Model.BuildPlanId, Model.QuestId, appCancellation.Token); break;
+                _selectedQuestId = await BuildPlanQuestService.CreateBuildPlanQuest(Model.BuildPlanId, Model.QuestId, appCancellation.Token); 
+                break;
             case FormModeEnum.Delete:
-                await BuildPlanQuestService.DeleteBuildPlanQuest(Model.BuildPlanId, Model.QuestId, appCancellation.Token); break;
+                await BuildPlanQuestService.DeleteBuildPlanQuest(Model.BuildPlanId, Model.QuestId, appCancellation.Token); 
+                break;
         }
-        MudDialog.Close();
+        MudDialog.Close(_selectedQuestId);
     }
 
     protected override void OnInitialized()

@@ -22,7 +22,7 @@
             @foreach (var location in _Locations)
             {
                 <div class="flex items-center gap-xs bg-surface-container px-md py-xs rounded-full">
-                    <span class="text-body-sm font-body-sm text-on-surface">@location.Name</span>
+                    <span class="text-body-sm font-body-sm text-on-surface">@location.QuestName</span>
                     <span class="material-symbols-outlined text-on-surface-variant text-sm cursor-pointer hover:text-error"
                           @onclick="() => RemoveLocation(location)">
                         close
@@ -56,34 +56,26 @@
     public int GameSaveId { get; set; }
 
     [Inject]
-    private IQuestService Service { get; set; }
+    private IBuildPlanQuestService Service { get; set; }
     [Inject]
     private IDialogService DialogService { get; set; }
 
 
-    private List<SearchQuestsResponseModel> _Locations { get; set; } = new();
+    private List<GetBuildPlanQuestListResponseModel> _Locations { get; set; } = new();
     private bool _isLoading { get; set; } = true;
-    private SearchQuestsQueryModel _searchModel { get; set; } = new SearchQuestsQueryModel();
 
     protected override async Task OnInitializedAsync()
     {
-        _searchModel = new SearchQuestsQueryModel
-            {
-                GameSaveId = GameSaveId,
-                OrderBy = "Name",
-                OrderDirection = OrderDirectionEnum.Ascending,
-                PageSize = int.MaxValue
-            };
         await LoadLocations();
     }
 
     private async Task LoadLocations()
     {
         _isLoading = true;
-        var response = await Service.SearchQuest(_searchModel, appCancellation.Token);
+        var response = await Service.GetBuildPlanQuestList(BuildPlanId, null, appCancellation.Token);
         if (response != null)
         {
-            _Locations = response.Data.ToList();
+            _Locations = response;
         }
         _isLoading = false;
     }
@@ -101,14 +93,14 @@
         await OpenAddLocationDialog(model, FormModeEnum.Create);
     }
 
-    private async Task RemoveLocation(SearchQuestsResponseModel location)
+    private async Task RemoveLocation(GetBuildPlanQuestListResponseModel location)
     {
         var model = new GetBuildPlanQuestQueryModel
         {
             BuildPlanId = BuildPlanId,
             BuildPlanName = BuildPlanName,
-            GameSaveId = location.GameSaveId,
-            QuestId = location.Id,
+            GameSaveId = GameSaveId,
+            QuestId = location.QuestId,
         };
 
         await OpenAddLocationDialog(model, FormModeEnum.Delete);
@@ -135,23 +127,10 @@
             if (formMode == FormModeEnum.Create)
             {
                 var id = result.Data as int?;
-                if (id.HasValue)
+                if (id.HasValue && id > 0)
                 {
-                    var newLocation = await Service.GetQuest(id.Value, appCancellation.Token);
-                    if (newLocation != null)
-                    {
-                        SearchQuestsResponseModel location = new SearchQuestsResponseModel
-                        {
-                            Id = newLocation.Id,
-                            Name = newLocation.Name,
-                            GameSaveId = newLocation.GameSaveId,
-                            Description = newLocation.Description,
-                            Location = newLocation.Location,
-                            ImageUrl = newLocation.ImageUrl
-                        };
-                        _Locations.Add(location);
-                        await InvokeAsync(StateHasChanged);
-                    }
+                    await LoadLocations();
+                    await InvokeAsync(StateHasChanged);
                 }   
             }
         }
