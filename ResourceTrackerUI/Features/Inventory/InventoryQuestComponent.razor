@@ -115,6 +115,8 @@
     private async Task IncrementQuantity(SearchInventoryResponseModel item)
     {
         item.AmountAquired++;
+        _updateType = QuestUpdateTypeEnum.ItemsUpdated;
+
         await SaveQuantity(item);
     }
 
@@ -122,6 +124,8 @@
     {
         if (item.AmountAquired <= 0) return;
         item.AmountAquired--;
+        _updateType = QuestUpdateTypeEnum.ItemsUpdated;
+
         await SaveQuantity(item);
     }
 

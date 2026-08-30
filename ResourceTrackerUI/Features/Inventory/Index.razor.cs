@@ -8,6 +8,7 @@ using ResourceTrackerUI.Application.Services.Common;
 using ResourceTrackerUI.Domain.Enums;
 using ResourceTrackerUI.Domain.Models.Feature;
 using ResourceTrackerUI.Domain.Models.Feature.Inventory;
+using ResourceTrackerUI.Domain.Models.Feature.InventorySummary;
 using ResourceTrackerUI.Domain.Models.Feature.Quest;
 using ResourceTrackerUI.Features.Quest;
 
@@ -15,41 +16,27 @@ namespace ResourceTrackerUI.Features.Inventory
 {
     public partial class Index
     {
-        [Inject] 
+        [Inject]
         private IQuestService QuestService { get; set; }
-        [Inject] 
-        private IInventoryService InventoryService { get; set; }
-        [Inject] 
+        [Inject]
         private IDialogService DialogService { get; set; }
-        [Inject] 
+        [Inject]
         private ISnackbar Snackbar { get; set; }
-        [Inject] 
+        [Inject]
         private GameSaveState GameSaveState { get; set; }
 
-        [Inject] 
+        [Inject]
         private IMapper Mapper { get; set; }
 
         // ── View state ──
         private string _view = "location";
         private bool _isLoading = false;
-        private string _aggregateSearch = string.Empty;
-
         // ── Data ──
         private List<SearchQuestsResponseModel> _quests { get; set; } = new List<SearchQuestsResponseModel>();
-        private Dictionary<int, List<SearchInventoryResponseModel>> _itemsPerQuest = new();
-        private Dictionary<int, string> _searchPerQuest = new();
 
         // Aggregated view
-        private List<AggregatedInventoryItem> _aggregated = new();
-        private int _totalItems = 0;
-        private int _uniqueItems = 0;
-        private int _itemStacks = 0;
-        private IEnumerable<AggregatedInventoryItem> FilteredAggregated =>
-            string.IsNullOrWhiteSpace(_aggregateSearch)
-                ? _aggregated
-                : _aggregated.Where(x =>
-                    x.ComponentName.Contains(_aggregateSearch, StringComparison.OrdinalIgnoreCase) ||
-                    x.ComponentType.Contains(_aggregateSearch, StringComparison.OrdinalIgnoreCase));
+        private InventorySummaryComponent _inventorySummary { get; set; }
+
 
         protected override async Task OnInitializedAsync()
         {
@@ -70,44 +57,8 @@ namespace ResourceTrackerUI.Features.Inventory
 
             _quests = response.Data.ToList();
 
-            // Init search dict for each quest
-            foreach (var q in _quests)
-                _searchPerQuest.TryAdd(q.Id, string.Empty);
-
             _isLoading = false;
         }
-
-        // Loads every quest's items for the aggregate totals view
-        private void LoadAllItemsForAggregate()
-        {
-            _aggregated = _itemsPerQuest
-                .SelectMany(kvp => kvp.Value.Select(item => new { QuestId = kvp.Key, Item = item }))
-                .GroupBy(x => x.Item.ComponentId)
-                .Select(g => new AggregatedInventoryItem
-                {
-                    ComponentId = g.Key,
-                    ComponentName = g.First().Item.ComponentName,
-                    ComponentType = g.First().Item.ComponentTypeName,
-                    ComponentImageUrl = g.First().Item.ComponentImageUrl,
-                    TotalQuantity = g.Sum(x => x.Item.AmountAquired),
-                    Locations = g.Select(x => new AggregatedLocation
-                    {
-                        QuestId = x.QuestId,
-                        QuestName = _quests.FirstOrDefault(q => q.Id == x.QuestId)?.Name ?? "",
-                        Quantity = x.Item.AmountAquired
-                    }).ToList()
-                })
-                .OrderBy(x => x.ComponentName)
-                .ToList();
-            _totalItems = _aggregated.Sum(x => x.TotalQuantity);
-            _uniqueItems = _aggregated.Count();
-            _itemStacks = _itemsPerQuest
-                .SelectMany(x => x.Value)
-                .Count();
-            StateHasChanged();
-        }
-
-
 
         private void SetView(string view)
         {
@@ -117,7 +68,7 @@ namespace ResourceTrackerUI.Features.Inventory
 
 
         // ── Quest modals ──
-      
+
         private async Task OpenCreateQuestModal()
         {
             var model = new QuestModel { GameSaveId = GameSaveState.ActiveGameSaveId!.Value };
@@ -135,40 +86,28 @@ namespace ResourceTrackerUI.Features.Inventory
             if (!result.Canceled)
             {
                 var resposne = result.Data as QuestModel;
-               if(resposne != null)
+                if (resposne != null)
                 {
                     var quest = Mapper.Map<SearchQuestsResponseModel>(resposne);
                     _quests.Add(quest);
-                    _itemsPerQuest.Add(quest.Id, new List<SearchInventoryResponseModel>());
                 }
             }
         }
 
         private void QuestDataUpdate(QuestUpdatedModel model)
         {
-            switch(model.UpdateType)
+            switch (model.UpdateType)
             {
                 case QuestUpdateTypeEnum.InitiatedQuestItems:
-                    if(!_itemsPerQuest.ContainsKey(model.QuestId))
-                    {
-                        _itemsPerQuest.Add(model.QuestId, model.Items);
-                    }
                     break;
                 case QuestUpdateTypeEnum.QuestDeleted:
-                    _itemsPerQuest.Remove(model.QuestId);
-                    var questToRemove = _quests.FirstOrDefault(q => q.Id == model.QuestId);
-                    if (questToRemove != null)
-                        _quests.Remove(questToRemove);
-                    break;
                 case QuestUpdateTypeEnum.ItemsUpdated:
-                    _itemsPerQuest[model.QuestId] = model.Items;
+                    _inventorySummary?.LoadData();
                     break;
             }
-            LoadAllItemsForAggregate();
             StateHasChanged();
         }
 
-
-
+       
     }
 }
