@@ -5914,6 +5914,9 @@ namespace ResourceTrackerUI.ApiClient
         [Newtonsoft.Json.JsonProperty("componentType", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public string ComponentType { get; set; }
 
+        [Newtonsoft.Json.JsonProperty("componentImageUrl", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string ComponentImageUrl { get; set; }
+
         [Newtonsoft.Json.JsonProperty("totalQuantity", Required = Newtonsoft.Json.Required.DisallowNull, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public int TotalQuantity { get; set; }
 

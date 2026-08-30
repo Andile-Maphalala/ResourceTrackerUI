@@ -12,13 +12,6 @@
         <div class="flex items-center gap-3">
             @* View toggle *@
             <RtToggle Option1Name="BY LOCATION" Option1Event='() => SetView("location")' Option2Name="TOTALS" Option2Event='() => SetView("aggregate")' />
-            <button @onclick="() => OpenCreateQuestModal()"
-                    class="flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary
-                font-label-caps text-label-caps rounded
-                hover:opacity-90 active:scale-95 transition-all">
-                <span class="material-symbols-outlined text-sm">add</span>
-                NEW LOCATION
-            </button>
         </div>
     </div>
 
@@ -35,6 +28,17 @@
     ══════════════════════════════════════ *@
     @if (_view == "location")
     {
+        <div class="right">
+            <button @onclick="() => OpenCreateQuestModal()"
+                    class="flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary
+                font-label-caps text-label-caps rounded
+                hover:opacity-90 active:scale-95 transition-all">
+                <span class="material-symbols-outlined text-sm">add</span>
+                NEW LOCATION
+            </button>
+    </div>
+  
+
         @if (!_isLoading && !_quests.Any())
         {
             <div class="glass-panel rounded-xl p-16 text-center">
