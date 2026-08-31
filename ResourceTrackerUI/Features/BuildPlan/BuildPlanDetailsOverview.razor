@@ -3,6 +3,7 @@
 @using ResourceTrackerUI.Domain.Common
 @using ResourceTrackerUI.Domain.Enums
 @using ResourceTrackerUI.Domain.Models.Common
+@using ResourceTrackerUI.Domain.Models.Feature.BuildPlanQuest
 @using ResourceTrackerUI.Domain.Models.Feature.BuildPlanRequirement
 @using ResourceTrackerUI.Shared.CustomComponents
 @using ResourceTrackerUI.Shared.CustomComponents.FormControls
@@ -32,6 +33,7 @@ else
              TItem="BuildPlanComponentRequirementModel"
              LoadData="LoadItems"
              CustomColumns="_customColumns"
+             ChildRowContent="@RenderLocationBreakdown"
              ShowAllActionsExceptBulk="false"
              HasAdvancedSearch="false"
              EnableColumnSave="false"
@@ -40,7 +42,9 @@ else
              Dense="true"
              Hover="true"
              Bordered="false"
-             Striped="false" />
+             Striped="false" 
+             CanExpand="@(row => true)"
+             RowKey="@(row => row.ComponentId)" />
 
     <FacilityRequirementsSection Facilities="@_model.FacilityRequirements" />
 
@@ -52,6 +56,8 @@ else
 
     [Inject]
     private IBuildPlanRequirementService BuildPlanRequirementService { get; set; }
+    [Inject]
+    private IBuildPlanQuestService BuildPlanQuestService { get; set; }
 
     private GetBuildPlanRequirementsResponseModel _model { get; set; } = new GetBuildPlanRequirementsResponseModel();
     private bool _isLoading { get; set; } = true;
@@ -61,11 +67,14 @@ else
     private RtTable<BuildPlanComponentRequirementModel>? _tableRef;
     private string _search { get; set; } = string.Empty;
     private PageableRequestModel _request { get; set; } = new PageableRequestModel();
+    private List<GetBuildPlanQuestListResponseModel> _Locations { get; set; } = new List<GetBuildPlanQuestListResponseModel>();
+
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
+            await LoadLocations();
             _request = new PageableRequestModel
             {
                 PageNumber = 1,
@@ -183,5 +192,23 @@ else
 
     private RenderFragment<BuildPlanComponentRequirementModel> GetStatusTemplate => item => @<StatusBadgeTemplate AvailableAmount="@item.AvailableAmount" MissingAmount="@item.MissingAmount" RequiredAmount="@item.RequiredAmount"/>;
 
+    private RenderFragment<BuildPlanComponentRequirementModel> RenderLocationBreakdown => item => @<BuildPlanInvenrotyLocation ComponentId="@item.ComponentId" BuildPlanId="@BuildPlanId" OnQuantityChanged="@OnComponentQuantityUpdated"  LinkedLocations="@_Locations"/>;
+
     #endregion
+
+
+    private async Task OnComponentQuantityUpdated()
+    {
+        await RefreshData();
+        await _tableRef?.RefreshTable();
+    }
+
+    private async Task LoadLocations()
+    {
+        var response = await BuildPlanQuestService.GetBuildPlanQuestList(BuildPlanId, null, appCancellation.Token);
+        if (response != null)
+        {
+            _Locations = response;
+        }
+    }
 }

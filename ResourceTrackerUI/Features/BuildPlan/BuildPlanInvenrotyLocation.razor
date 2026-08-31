@@ -1,0 +1,323 @@
+﻿@implements IDisposable
+@using MudBlazor
+@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Domain.Models.Feature.BuildPlanQuest
+@using ResourceTrackerUI.Domain.Models.Feature.Inventory
+@using ResourceTrackerUI.Domain.Models.Feature.InventorySummary
+
+<MudStack Class="pa-3" Style="max-width: 420px;" Spacing="1">
+
+    @foreach (var location in _locations)
+    {
+        <MudPaper Class="d-flex align-center justify-space-between pa-2"
+                  Style="@GetLocationStyle()"
+                  Elevation="0">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.body2" Style="font-weight:500;">@location.QuestName</MudText>
+            </MudStack>
+
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIconButton Icon="@Icons.Material.Filled.Remove"
+                               Size="Size.Small"
+                               Variant="Variant.Filled"
+                               Disabled="@(location.Quantity <= 0 || _saving.Contains(location.QuestId))"
+                               OnClick="@(() => Decrement(location))" />
+
+                <MudNumericField T="int"
+                                 Value="@location.Quantity"
+                                 ValueChanged="@(value => ChangeQuantity(location, value))"
+                                 Immediate="false"
+                                 HideSpinButtons="true"
+                                 Min="0"
+                                 Disabled="@(_saving.Contains(location.QuestId))"
+                                 Style="width: 56px;"
+                                 Class="rt-inline-qty" />
+
+                <MudIconButton Icon="@Icons.Material.Filled.Add"
+                               Size="Size.Small"
+                               Variant="Variant.Filled"
+                               Disabled="@(_saving.Contains(location.QuestId))"
+                               OnClick="@(() => Increment(location))" />
+            </MudStack>
+        </MudPaper>
+    }
+
+    @if (!_locations.Any() && !_missingLocations.Any())
+    {
+        <MudText Typo="Typo.caption" Color="Color.Default">No linked locations available.</MudText>
+    }
+
+    @if (_missingLocations.Any())
+    {
+        @if (!_isAdding)
+        {
+            <MudButton Variant="Variant.Text"
+                       Size="Size.Small"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       Color="Color.Primary"
+                       OnClick="@(() => _isAdding = true)">
+                Add location
+            </MudButton>
+        }
+        else
+        {
+            <MudPaper Class="d-flex align-center pa-2" Style="border: 1px dashed var(--mud-palette-lines-default); border-radius: 8px;" Elevation="0">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Style="width:100%;">
+                    <MudSelect T="int?"
+                               @bind-Value="_newLocationQuestId"
+                               Placeholder="Location"
+                               Dense="true"
+                               Style="min-width: 140px;"
+                               Disabled="_isSavingNew">
+                        @foreach (var missing in _missingLocations)
+                        {
+                            <MudSelectItem T="int?" Value="@missing.QuestId">@missing.QuestName</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudNumericField T="int"
+                                     @bind-Value="_newLocationQuantity"
+                                     Min="1"
+                                     HideSpinButtons="true"
+                                     Style="width: 60px;"
+                                     Disabled="_isSavingNew" />
+
+                    <MudIconButton Icon="@Icons.Material.Filled.Check"
+                                   Size="Size.Small"
+                                   Color="Color.Success"
+                                   Disabled="@(_newLocationQuestId == null || _isSavingNew)"
+                                   OnClick="ConfirmAddLocation" />
+
+                    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                   Size="Size.Small"
+                                   Disabled="_isSavingNew"
+                                   OnClick="CancelAddLocation" />
+                </MudStack>
+            </MudPaper>
+        }
+    }
+
+</MudStack>
+
+
+@code {
+
+    [Parameter]
+    public int ComponentId { get; set; }
+
+    [Parameter]
+    public int BuildPlanId { get; set; }
+
+    [Parameter]
+    public EventCallback OnQuantityChanged { get; set; }
+
+    [Parameter]
+    public List<GetBuildPlanQuestListResponseModel> LinkedLocations { get; set; }
+
+    /// <summary>How long to wait after the last click before saving.</summary>
+    [Parameter]
+    public int DebounceMilliseconds { get; set; } = 400;
+
+    [Inject]
+    private IInventoryService InventoryService { get; set; }
+    [Inject]
+    private ISnackbar Snackbar { get; set; } = default!;
+
+    private List<GetInventoryComponentQuestResponseModel> _locations { get; set; } = new List<GetInventoryComponentQuestResponseModel>();
+    private InventoryCrudModel _model { get; set; } = new InventoryCrudModel();
+
+    private readonly Dictionary<int, CancellationTokenSource> _debounceTokens = new();
+    private readonly HashSet<int> _saving = new();
+
+    private List<GetBuildPlanQuestListResponseModel> _missingLocations =>
+
+         LinkedLocations
+             .Where(l => !_locations.Any(loc => loc.QuestId == l.QuestId))
+            .ToList();
+
+    private bool _isAdding;
+    private bool _isSavingNew;
+    private int? _newLocationQuestId;
+    private int _newLocationQuantity = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _model = new InventoryCrudModel
+        {
+            ComponentId = ComponentId,
+        };
+        await LoadLocations();
+    }
+
+    private async Task LoadLocations()
+    {
+        var response = await InventoryService.GetInventoryComponentQuests(ComponentId, BuildPlanId, appCancellation.Token);
+        _locations = response.ToList();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string GetLocationStyle()
+    {
+        return "border: 1px solid var(--mud-palette-primary); border-radius: 8px;";
+    }
+
+    private void Increment(GetInventoryComponentQuestResponseModel location) =>
+        ChangeQuantity(location, location.Quantity + 1);
+
+    private void Decrement(GetInventoryComponentQuestResponseModel location) =>
+        ChangeQuantity(location, Math.Max(0, location.Quantity - 1));
+
+    private void ChangeQuantity(GetInventoryComponentQuestResponseModel location, int newQuantity)
+    {
+        if (newQuantity < 0)
+        {
+            newQuantity = 0;
+        }
+
+        if (newQuantity == location.Quantity)
+        {
+            return;
+        }
+
+        var previousQuantity = location.Quantity;
+
+        // Optimistic update - reflect the click/typed value immediately.
+        location.Quantity = newQuantity;
+        StateHasChanged();
+
+        DebounceSave(location, previousQuantity);
+    }
+
+    private void DebounceSave(GetInventoryComponentQuestResponseModel location, int previousQuantity)
+    {
+        // Cancel any pending save for this location - only the latest change after
+        // the debounce window actually hits the API.
+        if (_debounceTokens.TryGetValue(location.QuestId, out var existingCts))
+        {
+            existingCts.Cancel();
+            existingCts.Dispose();
+        }
+
+        var cts = new CancellationTokenSource();
+        _debounceTokens[location.QuestId] = cts;
+
+        _ = DebounceSaveAsync(location, previousQuantity, cts.Token);
+    }
+
+    private async Task DebounceSaveAsync(GetInventoryComponentQuestResponseModel location, int previousQuantity, CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(DebounceMilliseconds, token);
+        }
+        catch (TaskCanceledException)
+        {
+            return; // superseded by a newer click/edit on the same location
+        }
+
+        if (token.IsCancellationRequested)
+        {
+            return;
+        }
+
+        _saving.Add(location.QuestId);
+        StateHasChanged();
+
+        try
+        {
+            // This location already has a record - always Update, never Create.
+            _model.AmountAquired = location.Quantity;
+            _model.Id = location.QuestComponentId;
+            await InventoryService.UpdateInventory(_model, appCancellation.Token);
+        }
+        catch (Exception)
+        {
+            // Revert on failure so the UI never shows a number that didn't actually save.
+            location.Quantity = previousQuantity;
+            Snackbar.Add($"Couldn't update {location.QuestName} - try again", Severity.Error);
+        }
+        finally
+        {
+            _saving.Remove(location.QuestId);
+            await NotifyChanged();
+            StateHasChanged();
+        }
+    }
+
+    private void CancelAddLocation()
+    {
+        _isAdding = false;
+        _newLocationQuestId = null;
+        _newLocationQuantity = 1;
+    }
+
+    private async Task ConfirmAddLocation()
+    {
+        if (_newLocationQuestId == null || _isSavingNew)
+        {
+            return;
+        }
+
+        var targetLocation = LinkedLocations.FirstOrDefault(l => l.QuestId == _newLocationQuestId);
+        if (targetLocation == null)
+        {
+            return;
+        }
+
+        _isSavingNew = true;
+        StateHasChanged();
+
+        try
+        {
+            // This location has no record for this component yet - always Create, never Update.
+            var createModel = new InventoryModel
+            {
+                ComponentId = ComponentId,
+                QuestId = targetLocation.QuestId,
+                AmountAquired = _newLocationQuantity
+            };
+
+            var newQuestComponentId = await InventoryService.CreateInventory(createModel, appCancellation.Token);
+
+            // Reflect it locally without a full reload - it now belongs in the
+            // stepper list, not the "missing" dropdown.
+            _locations.Add(new GetInventoryComponentQuestResponseModel
+            {
+                QuestId = targetLocation.QuestId,
+                QuestName = targetLocation.QuestName,
+                QuestComponentId = newQuestComponentId,
+                Quantity = _newLocationQuantity
+            });
+
+            CancelAddLocation();
+            await NotifyChanged();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add($"Couldn't add {targetLocation.QuestName} - try again", Severity.Error);
+        }
+        finally
+        {
+            _isSavingNew = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task NotifyChanged()
+    {
+        if (OnQuantityChanged.HasDelegate)
+        {
+            await OnQuantityChanged.InvokeAsync();
+        }
+    }
+
+    public void Dispose()
+    {
+        foreach (var cts in _debounceTokens.Values)
+        {
+            cts.Cancel();
+            cts.Dispose();
+        }
+        _debounceTokens.Clear();
+    }
+}

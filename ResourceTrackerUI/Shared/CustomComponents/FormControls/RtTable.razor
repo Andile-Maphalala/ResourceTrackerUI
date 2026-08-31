@@ -37,6 +37,10 @@
           ServerData="OnServerDataRequest"
           LoadingContent="_loadingContent">
     <HeaderContent>
+        @if (ChildRowContent != null)
+        {
+            <MudTh Style="width:1%;"></MudTh>
+        }
         @foreach (var column in _renderColumns)
         {
             <MudTh>
@@ -129,6 +133,18 @@
         </MudGrid>
     </ToolBarContent>
     <RowTemplate>
+        @if (ChildRowContent != null)
+        {
+            <MudTd Style="width:1%;">
+                @if (CanExpand(context))
+                {
+                    <MudIconButton Icon="@(IsExpanded(context) ? Icons.Material.Filled.KeyboardArrowUp : Icons.Material.Filled.KeyboardArrowDown)"
+                                   Size="Size.Small"
+                                   Color="Color.Default"
+                                   OnClick="@(() => ToggleExpand(context))" />
+                }
+            </MudTd>
+        }
         @foreach (var column in _renderColumns)
         {
             <MudTd Style="@column.CellStyle">
@@ -159,6 +175,16 @@
 
         }
     </RowTemplate>
+    <ChildRowContent>
+        @if (ChildRowContent != null && IsExpanded(context))
+        {
+            <MudTr Class="rt-table-child-row">
+                <MudTd colspan="@TotalColumnCount" Style="padding:0;">
+                    @ChildRowContent(context)
+                </MudTd>
+            </MudTr>
+        }
+    </ChildRowContent>
     <NoRecordsContent>
         <MudText>No records found</MudText>
     </NoRecordsContent>
@@ -234,6 +260,31 @@
     [Parameter]
     public List<CustomColumnDenefition<TItem>> CustomColumns { get; set; } = new();
 
+    /// <summary>
+    /// Optional expandable row content. When set, an expand/collapse arrow column is added
+    /// as the first column of the table. Clicking it toggles rendering of this fragment
+    /// in a full-width row directly beneath the item's row.
+    /// </summary>
+    [Parameter]
+    public RenderFragment<TItem>? ChildRowContent { get; set; }
+
+    /// <summary>
+    /// Optional guard controlling whether a given row is allowed to expand at all
+    /// (e.g. only show the arrow when there's more than one location to break out).
+    /// If null, every row can expand.
+    /// </summary>
+    [Parameter]
+    public Func<TItem, bool>? CanExpand { get; set; }
+
+    /// <summary>
+    /// Optional key selector used to track which rows are expanded across re-renders
+    /// (e.g. item =&gt; item.Id). If omitted, the item itself is used as the key, which
+    /// works fine as long as TItem has sensible equality or the same instance is reused
+    /// across reloads.
+    /// </summary>
+    [Parameter]
+    public Func<TItem, object>? RowKey { get; set; }
+
     private readonly RenderFragment _loadingContent = @<MudSkeleton />;
 
     private bool _isLoading { get; set; } = true;
@@ -244,6 +295,7 @@
     private List<RenderFragment<TItem>> _crudColumn { get; set; } = default!;
 
     private List<RenderColumn> _renderColumns = new();
+    private readonly HashSet<object> _expandedKeys = new();
 
     private class RenderColumn
     {
@@ -266,6 +318,12 @@
     private DialogOptions dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
 
     private bool IsAdvancedSearchExpanded = false;
+
+    /// <summary>Total number of &lt;td&gt; columns in a data row, used for the child row colspan.</summary>
+    private int TotalColumnCount =>
+        (ChildRowContent != null ? 1 : 0) +
+        _renderColumns.Count +
+        (_crudColumn != null ? 1 : 0);
 
     protected override async Task OnInitializedAsync()
     {
@@ -492,6 +550,26 @@
             return visibility.Visible;
         }
         return false;
+    }
+
+    private object GetRowKey(TItem item)
+    {
+        if (RowKey != null)
+        {
+            return RowKey(item)!;
+        }
+        return item!;
+    }
+
+    private bool IsExpanded(TItem item) => _expandedKeys.Contains(GetRowKey(item));
+
+    private void ToggleExpand(TItem item)
+    {
+        var key = GetRowKey(item);
+        if (!_expandedKeys.Remove(key))
+        {
+            _expandedKeys.Add(key);
+        }
     }
 
 

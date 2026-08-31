@@ -22,12 +22,5 @@ namespace ResourceTrackerUI.Application.Services.Feature
             var result = mapper.Map<GetGameSaveInventorySummaryResponseModel>(response);
             return result;
         }
-
-        public async Task<List<GetInventoryComponentQuestResponseModel>> GetInventoryComponentQuest(int componentId, int buildPlanId, CancellationToken cancellationToken)
-        {
-            var response = await apiClient.ApiInventoryGetInventoryComponentQuestAsync(componentId, buildPlanId, cancellationToken);
-            var result = mapper.Map<List<GetInventoryComponentQuestResponseModel>>(response);
-            return result;
-        }
     }
 }

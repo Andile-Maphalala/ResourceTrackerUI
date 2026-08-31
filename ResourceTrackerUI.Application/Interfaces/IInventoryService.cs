@@ -1,6 +1,7 @@
 ﻿
 using ResourceTrackerUI.Domain.Models.Common;
 using ResourceTrackerUI.Domain.Models.Feature.Inventory;
+using ResourceTrackerUI.Domain.Models.Feature.InventorySummary;
 
 namespace ResourceTrackerUI.Application.Interfaces
 {
@@ -14,5 +15,7 @@ namespace ResourceTrackerUI.Application.Interfaces
         Task DeleteInventoryBulk(List<int> Ids, CancellationToken cancellationToken);
         Task<InventoryModel> GetInventory(int Id, CancellationToken cancellationToken);
         Task<PageableResponseModel<SearchInventoryResponseModel>> SearchInventory(SearchInventoryQueryModel query, CancellationToken cancellationToken);
+        Task<List<GetInventoryComponentQuestResponseModel>> GetInventoryComponentQuests(int componentId, int buildPlanId, CancellationToken cancellationToken);
+
     }
 }
