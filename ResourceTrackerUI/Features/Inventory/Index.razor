@@ -1,0 +1,74 @@
+﻿@page "/inventory"
+@using Microsoft.AspNetCore.Authorization
+@using ResourceTrackerUI.Shared.CustomComponents
+@using ResourceTrackerUI.Shared.CustomComponents.FormControls
+@attribute [Authorize]
+
+<div class="max-w-6xl mx-auto space-y-8">
+
+    @* ── Header ── *@
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <HeaderComponent Name="Inventory" Description="@GameSaveState.ActiveSaveName" ChipName="@GameSaveState.ActiveGameName" />
+        <div class="flex items-center gap-3">
+            @* View toggle *@
+            <RtToggle Option1Name="BY LOCATION" Option1Event='() => SetView("location")' Option2Name="TOTALS" Option2Event='() => SetView("aggregate")' />
+        </div>
+    </div>
+
+    <InventorySummaryComponent @ref="_inventorySummary" GameSaveId="@GameSaveState.ActiveGameSaveId.Value" />
+
+    @* ── Loading ── *@
+    @if (_isLoading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+    }
+
+    @* ══════════════════════════════════════
+       VIEW 1: BY LOCATION
+    ══════════════════════════════════════ *@
+    @if (_view == "location")
+    {
+        <div class="right">
+            <button @onclick="() => OpenCreateQuestModal()"
+                    class="flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary
+                font-label-caps text-label-caps rounded
+                hover:opacity-90 active:scale-95 transition-all">
+                <span class="material-symbols-outlined text-sm">add</span>
+                NEW LOCATION
+            </button>
+    </div>
+  
+
+        @if (!_isLoading && !_quests.Any())
+        {
+            <div class="glass-panel rounded-xl p-16 text-center">
+                <span class="material-symbols-outlined text-5xl text-on-surface-variant">
+                    location_off
+                </span>
+                <p class="text-body text-on-surface-variant mt-4 mb-6">
+                    No locations yet. Create one to start tracking resources.
+                </p>
+                <button @onclick="OpenCreateQuestModal"
+                        class="px-6 py-2.5 bg-primary text-on-primary font-label-caps
+                    text-label-caps rounded hover:opacity-90 transition-all">
+                    CREATE FIRST LOCATION
+                </button>
+            </div>
+        }
+
+        @foreach (var quest in _quests)
+        {
+            <InventoryQuestComponent Quest="@quest" OnQuestUpdated="QuestDataUpdate" />
+        }
+    }
+
+    @* ══════════════════════════════════════
+       VIEW 2: AGGREGATED TOTALS
+    ══════════════════════════════════════ *@
+    @if (_view == "aggregate")
+    {
+        <InventorySummaryAggregateComponent GameSaveId="@GameSaveState.ActiveGameSaveId.Value" />
+    }
+
+</div>
+                     

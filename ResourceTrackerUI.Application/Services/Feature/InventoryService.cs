@@ -5,6 +5,7 @@ using ResourceTrackerUI.ApiClient;
 using ResourceTrackerUI.Application.Interfaces;
 using ResourceTrackerUI.Domain.Models.Common;
 using ResourceTrackerUI.Domain.Models.Feature.Inventory;
+using ResourceTrackerUI.Domain.Models.Feature.InventorySummary;
 
 namespace ResourceTrackerUI.Application.Services.Feature
 {
@@ -69,6 +70,13 @@ namespace ResourceTrackerUI.Application.Services.Feature
             var result = await _apiClient.ApiQuestComponentSearchQuestComponentAsync(query.Id, query.QuestId, query.QuestName, query.QuestDescription, query.ComponentId, query.ComponentName, query.ComponentDescription, query.Type, query.SearchTerms, query.PageNumber, query.PageSize,query.OrderBy, orderDirection, cancellationToken);
             return _mapper.Map<PageableResponseModel<SearchInventoryResponseModel>>(result);
 
+        }
+
+        public async Task<List<GetInventoryComponentQuestResponseModel>> GetInventoryComponentQuests(int componentId, int buildPlanId, CancellationToken cancellationToken)
+        {
+            var response = await _apiClient.ApiInventoryGetInventoryComponentQuestAsync(componentId, buildPlanId, cancellationToken);
+            var result = _mapper.Map<List<GetInventoryComponentQuestResponseModel>>(response);
+            return result;
         }
     }
 }

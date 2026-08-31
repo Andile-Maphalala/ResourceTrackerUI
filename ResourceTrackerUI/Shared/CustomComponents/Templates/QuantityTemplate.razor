@@ -1,0 +1,28 @@
+﻿<div class="flex items-center gap-2">
+    <button @onclick="OnDecrement"
+            class="w-6 h-6 rounded bg-surface-container text-on-surface-variant
+        hover:text-primary hover:bg-primary/10 transition-colors
+        flex items-center justify-center">
+        <span class="material-symbols-outlined text-sm">remove</span>
+    </button>
+    <span class="font-data-mono text-data-mono text-primary w-8 text-center">
+        @Quantity
+    </span>
+    <button @onclick="OnIncrement"
+            class="w-6 h-6 rounded bg-surface-container text-on-surface-variant
+        hover:text-primary hover:bg-primary/10 transition-colors
+        flex items-center justify-center">
+        <span class="material-symbols-outlined text-sm">add</span>
+    </button>
+</div>
+
+@code {
+    [Parameter]
+    public int Quantity { get; set; }
+
+    [Parameter]
+    public EventCallback OnIncrement { get; set; }
+
+    [Parameter]
+    public EventCallback OnDecrement { get; set; }
+}

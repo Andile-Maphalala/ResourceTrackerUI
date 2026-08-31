@@ -1,0 +1,75 @@
+﻿
+@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Domain.Models.Feature.BuildPlan
+@using ResourceTrackerUI.Shared.CustomComponents
+@using ResourceTrackerUI.Shared.CustomComponents.FormControls
+
+
+@page "/buildplandetails/{BuildPlanId:int}"
+
+    <HeaderComponent Name="@_model.Name" Description="@_model.Description" ChipName="@_model.GameSaveName" />
+    <RtToggle Option1Name="OVERVIEW" Option1Event='() => SetView("overview")' Option2Name="SETUP" Option2Event='() => SetView("setup")' />
+
+
+@if (_isLoading)
+{
+    <div class="flex items-center justify-center h-32">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+    </div>
+}
+else
+{
+    @if (_view == "setup")
+    {
+        <BuildPlanDetailsSetup Model="_model" />
+    }
+    else if (_view == "overview")
+    {
+        <BuildPlanDetailsOverview BuildPlanId="@BuildPlanId" />
+    }
+}
+
+
+@code {
+
+    [Parameter]
+    public int BuildPlanId { get; set; }
+
+    [Inject]
+    private IBuildPlanService BuildPlanService { get; set; }
+
+    private BuildPlanModel _model { get; set; } = new BuildPlanModel();
+    private string _view = "overview";
+    private MudTabs _tabs = null!;
+    private bool _isLoading = true;
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+
+            await LoadBuildPlan(); 
+            _isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+
+    private async Task SetView(string view)
+    {
+        _view = view;
+        StateHasChanged();
+    }
+
+    private async Task LoadBuildPlan()
+    {
+        var response = await BuildPlanService.GetBuildPlan(BuildPlanId, appCancellation.Token);
+        if (response != null)
+        {
+            _model = response;
+            StateHasChanged();
+        }
+    }
+   
+}

@@ -1,0 +1,49 @@
+﻿@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Domain.Models.Feature.InventorySummary
+@using ResourceTrackerUI.Shared.CustomComponents
+@* ── Quick stats ── *@
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    @if (_isLoading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+        <div class="col-span-4 flex gap-4">
+            <div class="w-full bg-surface-container/10 rounded-xl p-4">Loading...</div>
+            <div class="w-full bg-surface-container/10 rounded-xl p-4">Loading...</div>
+            <div class="w-full bg-surface-container/10 rounded-xl p-4">Loading...</div>
+            <div class="w-full bg-surface-container/10 rounded-xl p-4">Loading...</div>
+        </div>
+    }
+    else
+    {
+        <ValueComponent Value="@_model.Quests" Description="LOCATIONS" />
+        <ValueComponent Value="@_model.UniqueItems" Description="UNIQUE ITEMS" />
+        <ValueComponent Value="@_model.TotalItems" Description="TOTAL ITEMS" />
+        <ValueComponent Value="@_model.ItemStacks" Description="ITEM STACKS" />
+    }
+    </div>
+
+@code {
+
+    [Parameter]
+    public int GameSaveId { get; set; }
+
+    [Inject]
+    private IInventorySummaryService Service { get; set; }
+
+    private GetGameSaveInventorySummaryResponseModel _model { get; set; } = new GetGameSaveInventorySummaryResponseModel();
+    private bool _isLoading { get; set; } = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+    public async Task LoadData()
+    {
+        _isLoading = true;
+        await InvokeAsync(StateHasChanged);
+        _model = await Service.GetGameSaveInventorySummary(GameSaveId, appCancellation.Token);
+        await InvokeAsync(StateHasChanged);
+        _isLoading = false;
+    }
+
+}

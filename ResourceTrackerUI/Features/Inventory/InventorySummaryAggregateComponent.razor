@@ -1,0 +1,144 @@
+﻿@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Domain.Models.Feature.InventorySummary
+
+@if (_isLoading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    @if (!_summaryData.Any())
+    {
+        <div class="glass-panel rounded-xl p-16 text-center">
+            <span class="material-symbols-outlined text-5xl text-on-surface-variant">
+                inventory_2
+            </span>
+            <p class="text-body text-on-surface-variant mt-4">
+                No items yet. Add items to your locations first.
+            </p>
+        </div>
+    }
+    else
+    {
+        @* Search bar *@
+        <div class="flex items-center gap-2 glass-panel border border-white/10 rounded-xl px-4 py-3">
+            <span class="material-symbols-outlined text-on-surface-variant">search</span>
+            <input @bind="_aggregateSearch" @bind:event="oninput" @onchange=""
+                   placeholder="Search all items..."
+                   class="bg-transparent text-on-surface text-body w-full
+            outline-none placeholder:text-on-surface-variant" />
+        </div>
+
+        <div class="glass-panel rounded-xl overflow-hidden">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-surface-container-highest/50 border-b border-white/5">
+                    <tr>
+                        <th class="px-5 py-3 font-label-caps text-label-caps text-on-surface-variant">
+                            COMPONENT
+                        </th>
+                        <th class="px-5 py-3 font-label-caps text-label-caps text-on-surface-variant">
+                            TYPE
+                        </th>
+                        <th class="px-5 py-3 font-label-caps text-label-caps text-on-surface-variant">
+                            TOTAL QTY
+                        </th>
+                        <th class="px-5 py-3 font-label-caps text-label-caps text-on-surface-variant">
+                            LOCATIONS
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var agg in _filteredSummaryData)
+                    {
+                        <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+                            <td class="px-5 py-3">
+                                <div class="flex items-center gap-3">
+                                    @if (!string.IsNullOrEmpty(agg.ComponentImageUrl))
+                                    {
+                                        <img src="@agg.ComponentImageUrl"
+                                             class="w-8 h-8 rounded object-cover" />
+                                    }
+                                    else
+                                    {
+                                        <div class="w-8 h-8 rounded bg-surface-container
+                                            flex items-center justify-center">
+                                            <span class="material-symbols-outlined text-on-surface-variant text-sm">
+                                                category
+                                            </span>
+                                        </div>
+                                    }
+                                    <span class="font-body text-on-surface">@agg.ComponentName</span>
+                                </div>
+                            </td>
+                            <td class="px-5 py-3">
+                                <span class="text-[10px] font-label-caps px-2 py-0.5 rounded-full
+                                    bg-surface-container text-on-surface-variant">
+                                    @agg.ComponentType
+                                </span>
+                            </td>
+                            <td class="px-5 py-3">
+                                <span class="font-data-mono text-data-mono text-primary">
+                                    @agg.TotalQuantity
+                                </span>
+                            </td>
+                            <td class="px-5 py-3">
+                                <div class="flex flex-wrap gap-1">
+                                    @foreach (var loc in agg.Quests)
+                                    {
+                                        <span class="text-[10px] font-label-caps px-2 py-0.5 rounded-full
+                                            bg-primary/10 text-primary border border-primary/20">
+                                            @loc.Name · @loc.Quantity
+                                        </span>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+}
+@code {
+    [Parameter]
+    public int GameSaveId { get; set; }
+
+    [Inject]
+    private IInventorySummaryService Service { get; set; }
+
+    private bool _isLoading = false;
+    private string _aggregateSearch = string.Empty;
+    private List<GetGameSaveInventoryComponentSummaryResponseModel> _summaryData { get; set; } = new List<GetGameSaveInventoryComponentSummaryResponseModel>();
+    private List<GetGameSaveInventoryComponentSummaryResponseModel> _filteredSummaryData { get; set; } = new List<GetGameSaveInventoryComponentSummaryResponseModel>();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+    public async Task LoadData()
+    {
+        _isLoading = true;
+        await InvokeAsync(StateHasChanged);
+        _summaryData = await Service.GetGameSaveInventoryComponentSummary(GameSaveId, appCancellation.Token);
+        _filteredSummaryData = _summaryData;
+
+        await InvokeAsync(StateHasChanged);
+        _isLoading = false;
+    }
+
+    private void SearchSummaryData()
+    {
+        if (string.IsNullOrWhiteSpace(_aggregateSearch))
+        {
+            _filteredSummaryData = _summaryData;
+            return;
+        }
+
+        _filteredSummaryData = _summaryData.Where(x =>
+                x.ComponentName.Contains(_aggregateSearch, StringComparison.OrdinalIgnoreCase) ||
+                x.ComponentType.Contains(_aggregateSearch, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    }
+}

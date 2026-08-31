@@ -25,6 +25,15 @@ namespace ResourceTrackerUI.Domain.Models.Common
         public OrderDirectionEnum OrderDirection { get; set; } = OrderDirectionEnum.Ascending;
 
         public string? SearchTerms { get; set; } = string.Empty;
+
+        public void AssignPageableRequestModel(PageableRequestModel model)
+        {
+            PageNumber = model.PageNumber;
+            PageSize = model.PageSize;
+            OrderBy = model.OrderBy;
+            OrderDirection = model.OrderDirection;
+            SearchTerms = model.SearchTerms;
+        }
     }
 }
 

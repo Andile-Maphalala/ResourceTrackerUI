@@ -1,0 +1,15 @@
+﻿@if (Acquired.HasValue)
+{
+    <span class="font-data-mono text-data-mono">@Acquired / @Required</span>
+}
+else
+{
+    <span class="font-data-mono text-body-sm text-on-surface-variant">@Required Required</span>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public int Required { get; set; }
+    [Parameter]
+    public int? Acquired { get; set; }
+}

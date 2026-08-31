@@ -1,0 +1,17 @@
+﻿@using ResourceTrackerUI.Domain.Models.Feature.BuildPlanRequirement
+@using ResourceTrackerUI.Shared.CustomComponents
+
+<div class="flex items-center gap-md mb-lg">
+    <span class="material-symbols-outlined text-primary">domain</span>
+    <h2 class="font-h2 text-h2">Facility Requirements</h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+    @foreach (var facility in Facilities)
+    {
+        <FacilityRequirementCardComponent Facility="facility" />
+    }
+</div>
+@code {
+    [Parameter, EditorRequired]
+    public List<BuildPlanFacilityRequirementModel> Facilities { get; set; } = new();
+}

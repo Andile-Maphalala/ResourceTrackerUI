@@ -1,0 +1,19 @@
+﻿@using ResourceTrackerUI.Shared.CustomComponents.FormControls
+@using ResourceTrackerUI.Domain.Models.Feature.BuildPlan
+
+
+<RtForm TModel="BuildPlanModel" Model="Model" FormMode="FormMode" OnSubmit="Submit" OnCancel="Cancel">
+    <MudGrid>
+        <MudItem xs="12" sm="12">
+            <RtInput @bind-Value="Model.GameSaveName" For="@(() => Model.GameSaveName)" Disabled="true" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <RtInput @bind-Value="Model.Name" For="@(() => Model.Name)"/>
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <RtInput @bind-Value="Model.Description" For="@(() => Model.Description)" Lines="5"  /> 
+        </MudItem>
+    </MudGrid>
+</RtForm>
+
+

@@ -1,0 +1,51 @@
+﻿@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Shared.CustomComponents.FormControls
+@using ResourceTrackerUI.Domain.Enums
+@using ResourceTrackerUI.Domain.Models.Feature
+@using System.Text.Json
+@using ResourceTrackerUI.Domain.Models.Feature.Game
+
+
+<RtForm TModel="GameModel" Model="Model" FormMode="FormMode" OnSubmit="Submit" OnCancel="Cancel">
+    <MudGrid>
+        <MudItem xs="12" sm="6">
+            <RtInput @bind-Value="Model.Name" For="@(() => Model.Name)"/>
+            <RtInput @bind-Value="Model.AltText"
+                          For="@(() => Model.AltText)"
+                          Disabled = "@(FormMode != FormModeEnum.Create)"/>
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <RtInput @bind-Value="Model.Description" For="@(() => Model.Description)" Lines="5" 
+                          /> 
+        </MudItem>
+
+        <MudItem xs="12" sm="12">
+            <MudGrid>
+                <MudItem xs="12" sm="9" Style="height:500px;">
+                    <MudImage     Src="@_base64"
+                                  Alt="@Model.AltText"
+                                  Height="400"
+                                  Width="350"
+                                  Elevation="25"
+                                  Class="rounded-lg"
+                                  ObjectFit="@ObjectFit.Fill" />
+
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                        <MudFileUpload @bind-Files="@Model.Image"
+                                       OnFilesChanged="@SwapPicture"
+                                       Accept=".jpg,.bmp,.tiff,.jpeg,.png">
+                        </MudFileUpload>
+                    <MudButton ButtonType="ButtonType.Button" OnClick="ClearImage"> </MudButton>
+                    <MudButton OnClick="ClearImage"
+                               Variant="Variant.Filled">
+                        Clear Image
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudItem>
+
+    </MudGrid>
+</RtForm>
+
+

@@ -11,5 +11,16 @@ namespace ResourceTrackerUI.Domain.Models.Feature.BuildPlanRequirement
         public int MissingAmount { get; set; }
         public int Type { get; set; }
         public string? ImageUrl { get; set; }
+
+        public string GetComponentTypeName()
+        {
+            return Type switch
+            {
+                1 => "Resource",
+                2 => "Composite",
+                3 => "Facility",
+                _ => "Unknown"
+            };
+        }
     }
 }

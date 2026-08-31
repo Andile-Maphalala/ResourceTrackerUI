@@ -1,0 +1,49 @@
+﻿@using ResourceTrackerUI.Domain.Models.Feature.BuildPlanRequirement
+<div class="glass-panel p-lg rounded-xl flex items-center justify-between @BorderClass">
+    <div class="flex items-center gap-md">
+        @if (!string.IsNullOrEmpty(Facility.ImageUrl))
+        {
+            <img src="@Facility.ImageUrl" class="w-9 h-9 rounded object-cover" alt="@Facility.Name" />
+        }
+        else
+        {
+            <span class="material-symbols-outlined @AccentClass text-3xl">domain</span>
+        }
+        <div>
+            <h3 class="font-body text-body font-bold @TitleClass">@Facility.Name</h3>
+            <p class="text-body-sm font-body-sm @SubtitleClass">@ResolvedSubtitle</p>
+        </div>
+    </div>
+    <span class="material-symbols-outlined @AccentClass font-bold">@StatusIcon</span>
+</div>
+@code {
+
+    [Parameter, EditorRequired]
+    public BuildPlanFacilityRequirementModel Facility { get; set; } = default!;
+
+    [Parameter]
+    public string? Subtitle { get; set; }
+
+    private bool IsFound => Facility.IsAvailable;
+
+    private string BorderClass => IsFound ? "border-primary/20" : "border-error/20";
+    private string AccentClass => IsFound ? "text-primary" : "text-error";
+    private string TitleClass => IsFound ? "" : "text-on-surface-variant";
+    private string SubtitleClass => IsFound ? "text-on-surface-variant" : "text-error/60";
+    private string StatusIcon => IsFound ? "check_circle" : "cancel";
+
+    private string ResolvedSubtitle => Subtitle ?? DefaultSubtitle;
+
+    private string DefaultSubtitle
+    {
+        get
+        {
+            var baseText = IsFound ? "Available" : "Not Found in Network";
+            var count = Facility.RequiredFor?.Count ?? 0;
+            return count == 0
+                ? baseText
+                : $"{baseText} · Required for {count} build{(count == 1 ? "" : "s")}";
+        }
+    }
+
+}

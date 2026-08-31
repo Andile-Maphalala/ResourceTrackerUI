@@ -1,0 +1,25 @@
+﻿@using ResourceTrackerUI.Application.Common
+@using ResourceTrackerUI.Shared.CustomComponents.FormControls
+@using ResourceTrackerUI.Domain.Models.Feature.GameSave
+@using ResourceTrackerUI.Domain.Models.Feature.Game
+
+<RtForm TModel="GameSaveModel" Model="Model" FormMode="FormMode" OnSubmit="Submit" OnCancel="Cancel">
+    <MudGrid>
+        <MudItem xs="12" sm="6">
+            <RtInput @bind-Value="Model.Name" For="@(() => Model.Name)" />
+            <RtInput @bind-Value="Model.Description" For="@(() => Model.Description)"
+                     MaxLines="5" Lines="3" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            @if (FormMode.IsReadOnlyValue())
+            {
+                <RtInput Value="Model.GameName" For="@(() => Model.GameName)" Disabled="true" />
+            }
+            else
+            {
+                <RtSelect @bind-Value="Model.GameId" For="@(() => Model.GameId)"
+                          LoadData="OnGameDataLoad" EnableImages="true" />
+            }
+        </MudItem>
+    </MudGrid>
+</RtForm>

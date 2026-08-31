@@ -1,0 +1,345 @@
+﻿@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Domain.Common
+@using ResourceTrackerUI.Domain.Enums
+@using ResourceTrackerUI.Domain.Models.Common
+@using ResourceTrackerUI.Domain.Models.Feature.Inventory
+@using ResourceTrackerUI.Domain.Models.Feature.Quest
+@using ResourceTrackerUI.Features.Quest
+@using ResourceTrackerUI.Shared.CustomComponents.FormControls
+@using ResourceTrackerUI.Shared.CustomComponents.Templates
+<div class="glass-panel rounded-xl overflow-hidden">
+
+    @* Location header *@
+    <div class="flex _items-center gap-4 p-5 cursor-pointer hover:bg-white/5 transition-colors
+        @(_isExpanded ? "border-b border-white/5" : "")"
+         @onclick="() => ToggleQuest()">
+
+        <div class="flex-1 min-w-0">
+            <div class="flex _items-center gap-3">
+                <p class="font-bold text-on-surface">@Quest.Name</p>
+                @if (!string.IsNullOrEmpty(Quest.Location))
+                {
+                    <span class="text-[10px] font-label-caps text-on-surface-variant
+                        bg-surface-container px-2 py-0.5 rounded-full">
+                        @Quest.Location
+                    </span>
+                }
+            </div>
+            @if (!string.IsNullOrEmpty(Quest.Description))
+            {
+                <p class="text-body-sm text-on-surface-variant truncate">
+                    @Quest.Description
+                </p>
+            }
+        </div>
+
+        @* Item count badge *@
+        @if (_items != null)
+        {
+            <span class="text-body-sm text-on-surface-variant mr-2">
+                @_items.Count item@(_items.Count != 1 ? "s" : "")
+            </span>
+        }
+
+        @* Edit/delete actions *@
+        <div class="flex _items-center gap-1 mr-2" @onclick:stopPropagation="true">
+            <button @onclick="() => OpenEditQuestModal()"
+                    class="p-1.5 text-on-surface-variant hover:text-primary
+                rounded hover:bg-white/5 transition-colors">
+                <span class="material-symbols-outlined text-sm">edit</span>
+            </button>
+            <button @onclick="() => OpenDeleteQuestModal()"
+                    class="p-1.5 text-on-surface-variant hover:text-error
+                rounded hover:bg-white/5 transition-colors">
+                <span class="material-symbols-outlined text-sm">delete</span>
+            </button>
+        </div>
+
+        <span class="material-symbols-outlined text-on-surface-variant transition-transform duration-200
+            @(_isExpanded ? "rotate-180" : "")">
+            expand_more
+        </span>
+    </div>
+
+    @* Items list *@
+    @if (_isExpanded)
+    {
+        <div class="p-5">
+            <RtTable @ref="_tableRef"
+         TItem="SearchInventoryResponseModel"
+         LoadData="LoadItems"
+         CustomColumns="_customColumns"
+         OnAction="HandleItemAction"
+         ActionVisibilities="_actionVisibilities"
+         ShowAllActionsExceptBulk="false"
+         HasAdvancedSearch="false"
+         EnableColumnSave="false"
+         EnableColumChooser="false"
+         DefaultPageSize="100"
+         Dense="true"
+         Hover="true"
+         Bordered="false"
+         Striped="false" />
+        </div>
+    }
+</div>
+
+@code {
+
+    [Inject] 
+    private IDialogService DialogService { get; set; }
+
+    [Inject] 
+    private IInventoryService InventoryService { get; set; }
+
+    [Inject] 
+    private IQuestService QuestService { get; set; }
+
+    [Parameter]
+    public SearchQuestsResponseModel Quest { get; set; }
+
+    [Parameter]
+    public EventCallback<QuestUpdatedModel> OnQuestUpdated { get; set; }
+
+    private List<SearchInventoryResponseModel> _items { get; set; } = new List<SearchInventoryResponseModel>();
+    private bool _isExpanded { get; set; } = false;
+    private bool _isLoading { get; set; } = true;
+    private string _search { get; set; } = string.Empty;
+    private QuestUpdateTypeEnum _updateType { get; set; } = QuestUpdateTypeEnum.InitiatedQuestItems;
+    private RtTable<SearchInventoryResponseModel>? _tableRef;
+
+    protected override async Task OnInitializedAsync()
+    {
+    }
+
+    private async Task IncrementQuantity(SearchInventoryResponseModel item)
+    {
+        item.AmountAquired++;
+        _updateType = QuestUpdateTypeEnum.ItemsUpdated;
+
+        await SaveQuantity(item);
+    }
+
+    private async Task DecrementQuantity(SearchInventoryResponseModel item)
+    {
+        if (item.AmountAquired <= 0) return;
+        item.AmountAquired--;
+        _updateType = QuestUpdateTypeEnum.ItemsUpdated;
+
+        await SaveQuantity(item);
+    }
+
+    private async Task SaveQuantity(SearchInventoryResponseModel item)
+    {
+        var model = new InventoryCrudModel
+        {
+            Id = item.Id,
+            ComponentId = item.ComponentId,
+            AmountAquired = item.AmountAquired
+        };
+        await InventoryService.UpdateInventory(model, appCancellation.Token);
+        await _tableRef.RefreshTable();
+        await QuestDataUpdate();
+        StateHasChanged();
+    }
+
+    private async Task ToggleQuest()
+    {
+        _isExpanded = !_isExpanded;
+    }
+
+
+    private Task OpenCreateQuestModal() => OpenQuestModal(FormModeEnum.Create);
+    private Task OpenEditQuestModal() => OpenQuestModal( FormModeEnum.Update);
+    private Task OpenDeleteQuestModal() => OpenQuestModal( FormModeEnum.Delete);
+
+    private async Task OpenQuestModal( FormModeEnum mode)
+    {
+        var model =  new QuestModel { 
+            Id = Quest.Id,
+            Description = Quest.Description,
+            GameSaveId = Quest.GameSaveId,
+            Location = Quest.Location,
+            Name = Quest.Name,
+            ImageUrl = Quest.ImageUrl
+        };
+
+        var parameters = new DialogParameters<EditQuestModal>
+            {
+                { x => x.Model, model },
+                { x => x.FormMode, mode }
+            };
+
+        var options = new DialogOptions { CloseOnEscapeKey = true, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<EditQuestModal>(mode.ToString(), parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            if (mode == FormModeEnum.Delete)
+            {
+                _updateType = QuestUpdateTypeEnum.QuestDeleted;
+                await QuestDataUpdate();
+                
+            }
+            else
+            {
+                var updatedQuest = result.Data as QuestModel;
+                if(updatedQuest != null)
+                {
+                    Quest = new SearchQuestsResponseModel
+                    {
+                        Id = updatedQuest.Id,
+                        Description = updatedQuest.Description,
+                        GameSaveId = updatedQuest.GameSaveId,
+                        Location = updatedQuest.Location,
+                        Name = updatedQuest.Name,
+                        ImageUrl = updatedQuest.ImageUrl
+                    };
+                }
+            }
+            StateHasChanged();
+
+        }
+    }
+
+    private List<SearchInventoryResponseModel> FilterItems()
+    {
+        if (string.IsNullOrWhiteSpace(_search))
+        {
+            return _items;
+        }
+        return _items.Where(x => x.ComponentName.Contains(_search, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    private Task OpenAddItemModal() => OpenItemModal(null, FormModeEnum.Create);
+
+    private Task OpenEditItemModal(SearchInventoryResponseModel item) => OpenItemModal(item, FormModeEnum.Update);
+
+    private Task OpenDeleteItemModal(SearchInventoryResponseModel item) => OpenItemModal(item, FormModeEnum.Delete);
+
+    private async Task OpenItemModal(SearchInventoryResponseModel? item, FormModeEnum mode)
+    {
+
+        var model = new InventoryModel { QuestId = Quest!.Id };
+        if (item != null)
+        {
+            model = new InventoryModel
+            {
+                QuestId = Quest!.Id,
+                ComponentId = item.ComponentId,
+                AmountAquired = item.AmountAquired,
+                ComponentImageUrl = item.ComponentImageUrl,
+                ComponentName = item.ComponentName,
+                ComponentType = item.ComponentType,
+                Id = item.Id
+            };
+        }
+        var parameters = new DialogParameters<EditInventoryItemModal>
+            {
+                { x => x.Model, model },
+                { x => x.FormMode, mode }
+            };
+
+        var options = new DialogOptions { CloseOnEscapeKey = true, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<EditInventoryItemModal>(mode.ToString(), parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            _updateType = QuestUpdateTypeEnum.ItemsUpdated;
+            await _tableRef?.RefreshTable();
+            await QuestDataUpdate();
+            StateHasChanged();
+        }
+    }
+
+    private async Task QuestDataUpdate()
+    {
+        if (OnQuestUpdated.HasDelegate)
+        {
+            await OnQuestUpdated.InvokeAsync(new QuestUpdatedModel
+            {
+                QuestId = Quest.Id,
+                Items = _items,
+                UpdateType = _updateType
+            });
+        }
+    }
+
+    private List<AutotableActionVisibilityModel> _actionVisibilities = new()
+    {
+        new() { Mode = FormModeEnum.Create, Visible = true },
+        new() { Mode = FormModeEnum.Update, Visible = true },
+        new() { Mode = FormModeEnum.Delete, Visible = true },
+    };
+
+    private List<CustomColumnDenefition<SearchInventoryResponseModel>> _customColumns => new()
+    {
+        new CustomColumnDenefition<SearchInventoryResponseModel>
+        {
+            DisplayName = "COMPONENT",
+            Order = 1,
+            Template = GetComponentTemplate
+        },
+        new CustomColumnDenefition<SearchInventoryResponseModel>
+        {
+            DisplayName = "TYPE",
+            Order = 2,
+            Template = GetTypeTemplate
+        },
+        new CustomColumnDenefition<SearchInventoryResponseModel>
+        {
+            DisplayName = "QUANTITY",
+            Order = 3,
+            Template = GetQuantityTemplate
+        }
+    };
+
+    private RenderFragment<SearchInventoryResponseModel> GetComponentTemplate => item =>@<ComponentTemplate Name="@item.ComponentName" ImageUrl="@item.ComponentImageUrl" />;
+
+    private RenderFragment<SearchInventoryResponseModel> GetTypeTemplate => item =>@<TypeTemplate Name="@item.ComponentTypeName" />;
+
+    private RenderFragment<SearchInventoryResponseModel> GetQuantityTemplate => item =>@<QuantityTemplate Quantity="item.AmountAquired"
+                                          OnIncrement="() => IncrementQuantity(item)"
+                                          OnDecrement="() => DecrementQuantity(item)" />;
+
+
+    private void HandleItemAction(ActionModel<SearchInventoryResponseModel> action)
+    {
+        switch (action.Mode)
+        {
+            case FormModeEnum.Create:
+                OpenAddItemModal();
+                break;
+            case FormModeEnum.Update:
+                OpenEditItemModal(action.Item);
+                break;
+            case FormModeEnum.Delete:
+                OpenDeleteItemModal(action.Item);
+                break;
+        }
+    }
+
+    private async Task HandleSearch(string value)
+    {
+        _search = value;
+        await _tableRef?.RefreshTable();
+    }
+
+    private async Task<PageableResponseModel<SearchInventoryResponseModel>> LoadItems(PageableRequestModel request)
+    {
+        SearchInventoryQueryModel requestSearch = new SearchInventoryQueryModel();
+        requestSearch.AssignPageableRequestModel(request);
+        requestSearch.QuestId = Quest.Id;
+
+        var response = await InventoryService.SearchInventory(requestSearch, appCancellation.Token);
+
+        _items = response.Data.ToList();
+        await QuestDataUpdate();
+
+        return response;
+    }
+    
+}

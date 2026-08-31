@@ -1,0 +1,214 @@
+﻿@using System.Reflection
+@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Domain.Common
+@using ResourceTrackerUI.Domain.Enums
+@using ResourceTrackerUI.Domain.Models.Common
+@using ResourceTrackerUI.Domain.Models.Feature.BuildPlanQuest
+@using ResourceTrackerUI.Domain.Models.Feature.BuildPlanRequirement
+@using ResourceTrackerUI.Shared.CustomComponents
+@using ResourceTrackerUI.Shared.CustomComponents.FormControls
+@using ResourceTrackerUI.Shared.CustomComponents.Templates
+
+@if(_isLoading)
+{
+    
+   <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <div class="flex flex-col gap-4">
+        <div class="flex items-center gap-2">
+            <MudCheckBox T="bool" Value="_includeInventory" Label="Include Inventory" Color="Color.Warning" CheckedIcon="@Icons.Material.Filled.Star" UncheckedIcon="@Icons.Material.Filled.StarOutline" ValueChanged="UpdateInventory"></MudCheckBox>
+            <MudCheckBox T="bool" Value="_includeFacilityRequirements" Label="Include Facility Requirements" Color="Color.Warning" CheckedIcon="@Icons.Material.Filled.Star" UncheckedIcon="@Icons.Material.Filled.StarOutline" ValueChanged="UpdateFacilityRequirements"></MudCheckBox>
+        </div>
+    </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <ValueComponent Value="@_model.TotalRequired" Description="Components" />
+            <ValueComponent Value="@_model.TotalAvailable" Description="READY" />
+            <ValueComponent Value="@_model.TotalMissing" Description="MISSING" />
+            <ValueComponent Value="@_model.FacilityRequirements.Count" Description="FACILITIES REQUIRED" />
+    </div>
+    <RtTable @ref="_tableRef"
+             TItem="BuildPlanComponentRequirementModel"
+             LoadData="LoadItems"
+             CustomColumns="_customColumns"
+             ChildRowContent="@RenderLocationBreakdown"
+             ShowAllActionsExceptBulk="false"
+             HasAdvancedSearch="false"
+             EnableColumnSave="false"
+             EnableColumChooser="false"
+             DefaultPageSize="100"
+             Dense="true"
+             Hover="true"
+             Bordered="false"
+             Striped="false" 
+             CanExpand="@(row => true)"
+             RowKey="@(row => row.ComponentId)" />
+
+    <FacilityRequirementsSection Facilities="@_model.FacilityRequirements" />
+
+}
+
+@code {
+    [Parameter]
+    public int BuildPlanId { get; set; }
+
+    [Inject]
+    private IBuildPlanRequirementService BuildPlanRequirementService { get; set; }
+    [Inject]
+    private IBuildPlanQuestService BuildPlanQuestService { get; set; }
+
+    private GetBuildPlanRequirementsResponseModel _model { get; set; } = new GetBuildPlanRequirementsResponseModel();
+    private bool _isLoading { get; set; } = true;
+    private bool _includeInventory { get; set; } = true;
+    private bool _includeFacilityRequirements { get; set; } = true;
+
+    private RtTable<BuildPlanComponentRequirementModel>? _tableRef;
+    private string _search { get; set; } = string.Empty;
+    private PageableRequestModel _request { get; set; } = new PageableRequestModel();
+    private List<GetBuildPlanQuestListResponseModel> _Locations { get; set; } = new List<GetBuildPlanQuestListResponseModel>();
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadLocations();
+            _request = new PageableRequestModel
+            {
+                PageNumber = 1,
+                PageSize = 20,
+                OrderDirection = OrderDirectionEnum.Ascending,
+                OrderBy = "ComponentName",
+            };
+            await RefreshData();
+        }
+    }
+
+
+    private async Task UpdateInventory(bool value)
+    {
+        _includeInventory = value;
+        await RefreshData();
+    }
+
+    private async Task UpdateFacilityRequirements(bool value)
+    {
+        _includeFacilityRequirements = value;
+        await RefreshData();
+    }
+
+     private async Task RefreshData()
+     {
+         _isLoading = true;
+         _model = await BuildPlanRequirementService.GetBuildPlanRequirements(BuildPlanId, _includeFacilityRequirements, _includeInventory, appCancellation.Token);
+         _isLoading = false;
+         await InvokeAsync(StateHasChanged);
+     }
+
+    #region Table
+
+    private Task<PageableResponseModel<BuildPlanComponentRequirementModel>> LoadItems(PageableRequestModel request)
+    {
+        _request = request;
+
+        IEnumerable<BuildPlanComponentRequirementModel> filtered = _model.Requirements;
+
+        // Search
+        if (!string.IsNullOrWhiteSpace(request.SearchTerms))
+        {
+            filtered = filtered.Where(x =>
+                x.ComponentName.Contains(request.SearchTerms, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Sort
+        if (!string.IsNullOrWhiteSpace(request.OrderBy))
+        {
+            var property = typeof(BuildPlanComponentRequirementModel)
+                .GetProperty(request.OrderBy, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
+
+            if (property != null)
+            {
+                filtered = request.OrderDirection == OrderDirectionEnum.Ascending
+                    ? filtered.OrderBy(x => property.GetValue(x))
+                    : filtered.OrderByDescending(x => property.GetValue(x));
+            }
+        }
+
+        var filteredList = filtered.ToList();
+
+        var pageItems = filteredList
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToList();
+
+        var response = new PageableResponseModel<BuildPlanComponentRequirementModel>
+        {
+            Data = pageItems,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize,
+            TotalRecords = filteredList.Count,
+            PageCount = (int)Math.Ceiling(filteredList.Count / (double)request.PageSize)
+        };
+
+        return Task.FromResult(response);
+    }
+
+
+    private List<CustomColumnDenefition<BuildPlanComponentRequirementModel>> _customColumns => new()
+    {
+        new CustomColumnDenefition<BuildPlanComponentRequirementModel>
+        {
+            DisplayName = "COMPONENT",
+            Order = 1,
+            Template = GetComponentTemplate
+        },
+        new CustomColumnDenefition<BuildPlanComponentRequirementModel>
+        {
+            DisplayName = "TYPE",
+            Order = 2,
+            Template = GetTypeTemplate
+        },
+        new CustomColumnDenefition<BuildPlanComponentRequirementModel>
+        {
+            DisplayName = "QUANTITY",
+            Order = 3,
+            Template = GetQuantityTemplate
+        },
+        new CustomColumnDenefition<BuildPlanComponentRequirementModel>
+        {
+            DisplayName = "STATUS",
+            Order = 4,
+            Template = GetStatusTemplate
+        }
+    };
+
+    private RenderFragment<BuildPlanComponentRequirementModel> GetComponentTemplate => item => @<ComponentTemplate Name="@item.ComponentName" ImageUrl="@item.ImageUrl" />;
+
+    private RenderFragment<BuildPlanComponentRequirementModel> GetTypeTemplate => item => @<TypeTemplate Name="@item.GetComponentTypeName()" />;
+
+    private RenderFragment<BuildPlanComponentRequirementModel> GetQuantityTemplate => item => @<RequirementQuantityTemplate Required="item.RequiredAmount" Acquired="item.AvailableAmount" />;
+
+    private RenderFragment<BuildPlanComponentRequirementModel> GetStatusTemplate => item => @<StatusBadgeTemplate AvailableAmount="@item.AvailableAmount" MissingAmount="@item.MissingAmount" RequiredAmount="@item.RequiredAmount"/>;
+
+    private RenderFragment<BuildPlanComponentRequirementModel> RenderLocationBreakdown => item => @<BuildPlanInvenrotyLocation ComponentId="@item.ComponentId" BuildPlanId="@BuildPlanId" OnQuantityChanged="@OnComponentQuantityUpdated"  LinkedLocations="@_Locations"/>;
+
+    #endregion
+
+
+    private async Task OnComponentQuantityUpdated()
+    {
+        await RefreshData();
+        await _tableRef?.RefreshTable();
+    }
+
+    private async Task LoadLocations()
+    {
+        var response = await BuildPlanQuestService.GetBuildPlanQuestList(BuildPlanId, null, appCancellation.Token);
+        if (response != null)
+        {
+            _Locations = response;
+        }
+    }
+}
