@@ -78,5 +78,13 @@ namespace ResourceTrackerUI.Application.Services.Feature
             var result = _mapper.Map<List<GetInventoryComponentQuestResponseModel>>(response);
             return result;
         }
+
+        public async Task<List<ConsumeBuildPlanComponentsResponseModel>> ConsumeBuildPlanComponents(List<ConsumeAllocationModel> models, CancellationToken cancellationToken)
+        {
+            var dto = _mapper.Map<ConsumeBuildPlanComponentsCommand>(models);
+            var response = await _apiClient.ApiInventoryConsumeBuildPlanComponentsAsync(dto, cancellationToken);
+            var result = _mapper.Map<List<ConsumeBuildPlanComponentsResponseModel>>(response);
+            return result;
+        }
     }
 }

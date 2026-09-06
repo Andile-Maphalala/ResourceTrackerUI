@@ -9,10 +9,16 @@ namespace ResourceTrackerUI.Application.Services.Feature
 {
     public class BuildPlanRequirementService(ResourceTrackerApiClient apiClient, IMapper mapper) : IBuildPlanRequirementService
     {
-        public async Task<GetBuildPlanRequirementsResponseModel> GetBuildPlanRequirements(int buildPlanId, bool includeFacilityRequirements, bool IncludeInventory, CancellationToken cancellationToken)
+        public async Task<GetBuildPlanRequirementsResponseModel> GetBuildPlanRequirements(int buildPlanId, CancellationToken cancellationToken)
         {
-            var response = await apiClient.ApiBuildPlanRequirementGetBuildPlanRequirementAsync(buildPlanId, includeFacilityRequirements, IncludeInventory, cancellationToken);
+            var response = await apiClient.ApiBuildPlanRequirementGetBuildPlanRequirementAsync(buildPlanId, cancellationToken);
             return mapper.Map<GetBuildPlanRequirementsResponseModel>(response);
+        }
+
+        public async Task<GetBuildPlanSankeyResponse> GetBuildPlanSankey(int buildPlanId, CancellationToken cancellationToken)
+        {
+            var response = await apiClient.ApiBuildPlanRequirementGetBuildPlanSankeyAsync(buildPlanId, cancellationToken);
+            return mapper.Map<GetBuildPlanSankeyResponse>(response);
         }
     }
 }

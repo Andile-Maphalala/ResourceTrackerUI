@@ -3,6 +3,7 @@
 @using ResourceTrackerUI.Domain.Common
 @using ResourceTrackerUI.Domain.Enums
 @using ResourceTrackerUI.Domain.Models.Common
+@using ResourceTrackerUI.Domain.Models.Feature.BuildPlan
 @using ResourceTrackerUI.Domain.Models.Feature.BuildPlanQuest
 @using ResourceTrackerUI.Domain.Models.Feature.BuildPlanRequirement
 @using ResourceTrackerUI.Shared.CustomComponents
@@ -18,8 +19,8 @@ else
 {
     <div class="flex flex-col gap-4">
         <div class="flex items-center gap-2">
-            <MudCheckBox T="bool" Value="_includeInventory" Label="Include Inventory" Color="Color.Warning" CheckedIcon="@Icons.Material.Filled.Star" UncheckedIcon="@Icons.Material.Filled.StarOutline" ValueChanged="UpdateInventory"></MudCheckBox>
-            <MudCheckBox T="bool" Value="_includeFacilityRequirements" Label="Include Facility Requirements" Color="Color.Warning" CheckedIcon="@Icons.Material.Filled.Star" UncheckedIcon="@Icons.Material.Filled.StarOutline" ValueChanged="UpdateFacilityRequirements"></MudCheckBox>
+            <MudCheckBox T="bool" @bind-Value="Model.IncludeInventory" ReadOnly="true" Label="Include Inventory" Color="Color.Warning" CheckedIcon="@Icons.Material.Filled.Star" UncheckedIcon="@Icons.Material.Filled.StarOutline"/>
+            <MudCheckBox T="bool" @bind-Value="Model.IncludeFacilityRequirements" ReadOnly="true" Label="Include Facility Requirements" Color="Color.Warning" CheckedIcon="@Icons.Material.Filled.Star" UncheckedIcon="@Icons.Material.Filled.StarOutline" />
         </div>
     </div>
 
@@ -52,7 +53,7 @@ else
 
 @code {
     [Parameter]
-    public int BuildPlanId { get; set; }
+    public BuildPlanModel Model { get; set; }
 
     [Inject]
     private IBuildPlanRequirementService BuildPlanRequirementService { get; set; }
@@ -61,8 +62,6 @@ else
 
     private GetBuildPlanRequirementsResponseModel _model { get; set; } = new GetBuildPlanRequirementsResponseModel();
     private bool _isLoading { get; set; } = true;
-    private bool _includeInventory { get; set; } = true;
-    private bool _includeFacilityRequirements { get; set; } = true;
 
     private RtTable<BuildPlanComponentRequirementModel>? _tableRef;
     private string _search { get; set; } = string.Empty;
@@ -89,20 +88,20 @@ else
 
     private async Task UpdateInventory(bool value)
     {
-        _includeInventory = value;
+        Model.IncludeInventory = value;
         await RefreshData();
     }
 
     private async Task UpdateFacilityRequirements(bool value)
     {
-        _includeFacilityRequirements = value;
+        Model.IncludeFacilityRequirements = value;
         await RefreshData();
     }
 
      private async Task RefreshData()
      {
          _isLoading = true;
-         _model = await BuildPlanRequirementService.GetBuildPlanRequirements(BuildPlanId, _includeFacilityRequirements, _includeInventory, appCancellation.Token);
+         _model = await BuildPlanRequirementService.GetBuildPlanRequirements(Model.Id, appCancellation.Token);
          _isLoading = false;
          await InvokeAsync(StateHasChanged);
      }
@@ -192,7 +191,7 @@ else
 
     private RenderFragment<BuildPlanComponentRequirementModel> GetStatusTemplate => item => @<StatusBadgeTemplate AvailableAmount="@item.AvailableAmount" MissingAmount="@item.MissingAmount" RequiredAmount="@item.RequiredAmount"/>;
 
-    private RenderFragment<BuildPlanComponentRequirementModel> RenderLocationBreakdown => item => @<BuildPlanInvenrotyLocation ComponentId="@item.ComponentId" BuildPlanId="@BuildPlanId" OnQuantityChanged="@OnComponentQuantityUpdated"  LinkedLocations="@_Locations"/>;
+    private RenderFragment<BuildPlanComponentRequirementModel> RenderLocationBreakdown => item => @<BuildPlanInvenrotyLocation ComponentId="@item.ComponentId"  OnQuantityChanged="@OnComponentQuantityUpdated"  LinkedLocations="@_Locations" Locations="@item.Locations"/>;
 
     #endregion
 
@@ -205,7 +204,7 @@ else
 
     private async Task LoadLocations()
     {
-        var response = await BuildPlanQuestService.GetBuildPlanQuestList(BuildPlanId, null, appCancellation.Token);
+        var response = await BuildPlanQuestService.GetBuildPlanQuestList(Model.Id, null, appCancellation.Token);
         if (response != null)
         {
             _Locations = response;

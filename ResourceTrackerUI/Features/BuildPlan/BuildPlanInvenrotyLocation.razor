@@ -2,12 +2,12 @@
 @using MudBlazor
 @using ResourceTrackerUI.Application.Interfaces
 @using ResourceTrackerUI.Domain.Models.Feature.BuildPlanQuest
+@using ResourceTrackerUI.Domain.Models.Feature.BuildPlanRequirement
 @using ResourceTrackerUI.Domain.Models.Feature.Inventory
-@using ResourceTrackerUI.Domain.Models.Feature.InventorySummary
 
 <MudStack Class="pa-3" Style="max-width: 420px;" Spacing="1">
 
-    @foreach (var location in _locations)
+    @foreach (var location in Locations)
     {
         <MudPaper Class="d-flex align-center justify-space-between pa-2"
                   Style="@GetLocationStyle()"
@@ -42,7 +42,7 @@
         </MudPaper>
     }
 
-    @if (!_locations.Any() && !_missingLocations.Any())
+    @if (!Locations.Any() && !_missingLocations.Any())
     {
         <MudText Typo="Typo.caption" Color="Color.Default">No linked locations available.</MudText>
     }
@@ -55,7 +55,7 @@
                        Size="Size.Small"
                        StartIcon="@Icons.Material.Filled.Add"
                        Color="Color.Primary"
-                       OnClick="@(() => _isAdding = true)">
+                       OnClick="@(() => AddLocation())">
                 Add location
             </MudButton>
         }
@@ -114,6 +114,9 @@
     [Parameter]
     public List<GetBuildPlanQuestListResponseModel> LinkedLocations { get; set; }
 
+    [Parameter]
+    public List<ComponentLocationModel> Locations { get; set; } = new List<ComponentLocationModel>();
+
     /// <summary>How long to wait after the last click before saving.</summary>
     [Parameter]
     public int DebounceMilliseconds { get; set; } = 400;
@@ -123,7 +126,6 @@
     [Inject]
     private ISnackbar Snackbar { get; set; } = default!;
 
-    private List<GetInventoryComponentQuestResponseModel> _locations { get; set; } = new List<GetInventoryComponentQuestResponseModel>();
     private InventoryCrudModel _model { get; set; } = new InventoryCrudModel();
 
     private readonly Dictionary<int, CancellationTokenSource> _debounceTokens = new();
@@ -132,7 +134,7 @@
     private List<GetBuildPlanQuestListResponseModel> _missingLocations =>
 
          LinkedLocations
-             .Where(l => !_locations.Any(loc => loc.QuestId == l.QuestId))
+             .Where(l => !Locations.Any(loc => loc.QuestId == l.QuestId))
             .ToList();
 
     private bool _isAdding;
@@ -146,14 +148,6 @@
         {
             ComponentId = ComponentId,
         };
-        await LoadLocations();
-    }
-
-    private async Task LoadLocations()
-    {
-        var response = await InventoryService.GetInventoryComponentQuests(ComponentId, BuildPlanId, appCancellation.Token);
-        _locations = response.ToList();
-        await InvokeAsync(StateHasChanged);
     }
 
     private string GetLocationStyle()
@@ -161,13 +155,13 @@
         return "border: 1px solid var(--mud-palette-primary); border-radius: 8px;";
     }
 
-    private void Increment(GetInventoryComponentQuestResponseModel location) =>
+    private void Increment(ComponentLocationModel location) =>
         ChangeQuantity(location, location.Quantity + 1);
 
-    private void Decrement(GetInventoryComponentQuestResponseModel location) =>
+    private void Decrement(ComponentLocationModel location) =>
         ChangeQuantity(location, Math.Max(0, location.Quantity - 1));
 
-    private void ChangeQuantity(GetInventoryComponentQuestResponseModel location, int newQuantity)
+    private void ChangeQuantity(ComponentLocationModel location, int newQuantity)
     {
         if (newQuantity < 0)
         {
@@ -188,7 +182,7 @@
         DebounceSave(location, previousQuantity);
     }
 
-    private void DebounceSave(GetInventoryComponentQuestResponseModel location, int previousQuantity)
+    private void DebounceSave(ComponentLocationModel location, int previousQuantity)
     {
         // Cancel any pending save for this location - only the latest change after
         // the debounce window actually hits the API.
@@ -204,7 +198,7 @@
         _ = DebounceSaveAsync(location, previousQuantity, cts.Token);
     }
 
-    private async Task DebounceSaveAsync(GetInventoryComponentQuestResponseModel location, int previousQuantity, CancellationToken token)
+    private async Task DebounceSaveAsync(ComponentLocationModel location, int previousQuantity, CancellationToken token)
     {
         try
         {
@@ -281,7 +275,7 @@
 
             // Reflect it locally without a full reload - it now belongs in the
             // stepper list, not the "missing" dropdown.
-            _locations.Add(new GetInventoryComponentQuestResponseModel
+            Locations.Add(new ComponentLocationModel
             {
                 QuestId = targetLocation.QuestId,
                 QuestName = targetLocation.QuestName,
@@ -319,5 +313,18 @@
             cts.Dispose();
         }
         _debounceTokens.Clear();
+    }
+
+    private void AddLocation()
+    {
+        _isAdding = true;
+        var firstMissingLocation = _missingLocations.FirstOrDefault();
+        _newLocationQuestId = null;
+
+        if (firstMissingLocation != null)
+        {
+            _newLocationQuestId = firstMissingLocation.QuestId;
+        }
+        _newLocationQuantity = 1;
     }
 }
