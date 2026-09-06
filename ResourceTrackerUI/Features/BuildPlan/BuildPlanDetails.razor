@@ -1,7 +1,10 @@
 ﻿
 @using ResourceTrackerUI.Application.Interfaces
 @using ResourceTrackerUI.Domain.Common.CustomComponents
+@using ResourceTrackerUI.Domain.Models.Common
 @using ResourceTrackerUI.Domain.Models.Feature.BuildPlan
+@using ResourceTrackerUI.Domain.Models.Feature.BuildPlanComponent
+@using ResourceTrackerUI.Domain.Models.Feature.BuildPlanRequirement
 @using ResourceTrackerUI.Shared.CustomComponents
 @using ResourceTrackerUI.Shared.CustomComponents.FormControls
 
@@ -12,8 +15,8 @@
 <RtToggle Options="@(new List<RtToggleOptionModel>
     {
           new RtToggleOptionModel { Name = "OVERVIEW", Value = "overview", OnSelected = EventCallback.Factory.Create(this, (Func<Task>)(() => SetView("overview"))) },
-          new RtToggleOptionModel { Name = "SETUP", Value = "setup", OnSelected = EventCallback.Factory.Create(this, (Func<Task>)(() => SetView("setup"))) },
-          new RtToggleOptionModel { Name = "FLOW", Value = "flow", OnSelected = EventCallback.Factory.Create(this, (Func<Task>)(() => SetView("flow"))) }
+          new RtToggleOptionModel { Name = "FLOW", Value = "flow", OnSelected = EventCallback.Factory.Create(this, (Func<Task>)(() => SetView("flow"))) },
+          new RtToggleOptionModel { Name = "SETUP", Value = "setup", OnSelected = EventCallback.Factory.Create(this, (Func<Task>)(() => SetView("setup"))) }
 
     })" />
 
@@ -28,15 +31,15 @@ else
 {
     @if (_view == "setup")
     {
-        <Setup Model="_model" />
+        <Setup Model="_model" OnForceRefresh="ForceRefreshOverview" />
     }
     else if (_view == "overview")
     {
-        <Overview Model="@_model" />
+        <Overview Model="@_model" GetData="LoadOverviewData" />
     }
     else if (_view == "flow")
     {
-        <Flow Model="@_model" />
+        <Flow Model="@_model" GetData="LoadFlowData" />
     }
 }
 
@@ -49,11 +52,24 @@ else
     [Inject]
     private IBuildPlanService BuildPlanService { get; set; }
 
+    [Inject]
+    private IBuildPlanRequirementService BuildPlanRequirementService { get; set; }
+
     private BuildPlanModel _model { get; set; } = new BuildPlanModel();
     private string _view = "overview";
     private MudTabs _tabs = null!;
     private bool _isLoading = true;
 
+    private LazyCache<GetBuildPlanRequirementsResponseModel>? _overviewCache;
+    private LazyCache<GetBuildPlanSankeyResponseModel>? _flowCache;
+    private LazyCache<PageableResponseModel<BuildPlanComponentResponseModel>>? _setupCache;
+
+
+    protected override void OnInitialized()
+    {
+        _overviewCache = new(ct => BuildPlanRequirementService.GetBuildPlanRequirements(BuildPlanId, ct));
+        _flowCache = new(ct => BuildPlanRequirementService.GetBuildPlanSankey(BuildPlanId, ct));
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -81,6 +97,23 @@ else
             _model = response;
             StateHasChanged();
         }
+    }
+
+    private Task<GetBuildPlanRequirementsResponseModel> LoadOverviewData(bool forceRefresh)
+    {
+        return _overviewCache!.GetAsync(forceRefresh, appCancellation.Token);
+    }
+
+    private Task<GetBuildPlanSankeyResponseModel> LoadFlowData(bool forceRefresh)
+    {
+        return _flowCache!.GetAsync(forceRefresh, appCancellation.Token);
+    }
+
+
+    private void ForceRefreshOverview()
+    {
+        _overviewCache?.Invalidate();
+        _flowCache?.Invalidate();
     }
    
 }

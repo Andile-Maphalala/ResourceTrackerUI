@@ -10,15 +10,9 @@
 @using ResourceTrackerUI.Shared.CustomComponents.FormControls
 @using ResourceTrackerUI.Shared.CustomComponents.Templates
 
-@if(_isLoading)
-{
-    
-   <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
-}
-else
-{
+
     <div class="flex flex-col gap-4">
-        <div class="flex items-center gap-2">
+       <div class="flex items-center gap-2">
             <MudCheckBox T="bool" @bind-Value="Model.IncludeInventory" ReadOnly="true" Label="Include Inventory" Color="Color.Warning" CheckedIcon="@Icons.Material.Filled.Star" UncheckedIcon="@Icons.Material.Filled.StarOutline"/>
             <MudCheckBox T="bool" @bind-Value="Model.IncludeFacilityRequirements" ReadOnly="true" Label="Include Facility Requirements" Color="Color.Warning" CheckedIcon="@Icons.Material.Filled.Star" UncheckedIcon="@Icons.Material.Filled.StarOutline" />
         </div>
@@ -52,16 +46,15 @@ else
              CanExpand="@(row => true)"
              RowKey="@(row => row.ComponentId)" />
 
-    <FacilityRequirementsSection Facilities="@_model.FacilityRequirements" />
+<FacilityRequirementsSection Facilities="@_model.FacilityRequirements" />
 
-}
 
 @code {
     [Parameter]
-    public BuildPlanModel Model { get; set; }
+    public BuildPlanModel Model { get; set; } = new BuildPlanModel();
+    [Parameter] 
+    public Func<bool, Task<GetBuildPlanRequirementsResponseModel>>? GetData{ get; set; }
 
-    [Inject]
-    private IBuildPlanRequirementService BuildPlanRequirementService { get; set; }
     [Inject]
     private IBuildPlanQuestService BuildPlanQuestService { get; set; }
     [Inject]
@@ -75,6 +68,7 @@ else
     private PageableRequestModel _request { get; set; } = new PageableRequestModel();
     private List<GetBuildPlanQuestListResponseModel> _Locations { get; set; } = new List<GetBuildPlanQuestListResponseModel>();
 
+    private bool _forceRefresh { get; set; } = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -108,7 +102,7 @@ else
      private async Task RefreshData()
      {
          _isLoading = true;
-         _model = await BuildPlanRequirementService.GetBuildPlanRequirements(Model.Id, appCancellation.Token);
+        _model = await GetData!(false);
         if(_tableRef != null)
         {
             await _tableRef?.RefreshTable();
@@ -207,10 +201,22 @@ else
     #endregion
 
 
-    private async Task OnComponentQuantityUpdated()
+    private async Task OnComponentQuantityUpdated(int componentId)
     {
-        await RefreshData();
-        await _tableRef?.RefreshTable();
+        var requirement = _model.Requirements.FirstOrDefault(r => r.ComponentId == componentId);
+        if (requirement != null)
+        {
+            requirement.AvailableAmount = requirement.Locations.Sum(l => l.Quantity);
+            requirement.MissingAmount = Math.Max(0, requirement.RequiredAmount - requirement.AvailableAmount);
+
+            _model.TotalAvailable = _model.Requirements.Sum(r => r.AvailableAmount);
+            _model.TotalMissing = _model.Requirements.Sum(r => r.MissingAmount);
+        }
+
+        if (_tableRef != null)
+        {
+            await _tableRef.RefreshTable();
+        }
     }
 
     private async Task LoadLocations()
@@ -234,7 +240,9 @@ else
 
         if (!result.Canceled)
         {
+            _forceRefresh = true;
             await RefreshData();
+            _forceRefresh = false;
         }
     }
 }

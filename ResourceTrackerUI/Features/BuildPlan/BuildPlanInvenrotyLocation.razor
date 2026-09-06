@@ -109,7 +109,7 @@
     public int BuildPlanId { get; set; }
 
     [Parameter]
-    public EventCallback OnQuantityChanged { get; set; }
+    public EventCallback<int> OnQuantityChanged { get; set; }
 
     [Parameter]
     public List<GetBuildPlanQuestListResponseModel> LinkedLocations { get; set; }
@@ -302,7 +302,7 @@
     {
         if (OnQuantityChanged.HasDelegate)
         {
-            await OnQuantityChanged.InvokeAsync();
+            await OnQuantityChanged.InvokeAsync(ComponentId);
         }
     }
 

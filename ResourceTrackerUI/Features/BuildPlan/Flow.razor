@@ -24,9 +24,8 @@
 @code {
     [Parameter]
     public BuildPlanModel Model { get; set; }
-
-    [Inject]
-    private IBuildPlanRequirementService Service { get; set; }
+    [Parameter]
+    public Func<bool, Task<GetBuildPlanSankeyResponseModel>>? GetData { get; set; }
 
 
     private List<ChartSeries<int>> _series = new();
@@ -34,7 +33,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var response = await Service.GetBuildPlanSankey(Model.Id, appCancellation.Token);
+        var response = await GetData!(false);
         var sankeyData = response.Edges
                     .Select(e => new SankeyEdge<int>(e.Source, e.Target, e.Value))
                     .ToList();

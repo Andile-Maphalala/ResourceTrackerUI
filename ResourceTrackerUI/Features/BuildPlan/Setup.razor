@@ -29,6 +29,8 @@ TItem="BuildPlanComponentResponseModel"
     
     [Parameter]
     public BuildPlanModel Model { get; set; } = new BuildPlanModel();
+    [Parameter] 
+    public EventCallback OnForceRefresh { get; set; }
    
     [Inject]
     private IBuildPlanComponentService BuildPlanComponentService { get; set; }
@@ -126,6 +128,7 @@ TItem="BuildPlanComponentResponseModel"
 
         if (!result.Canceled)
         {
+            await ForceRefresh();
             StateHasChanged();
             await _tableRef?.RefreshTable();
         }
@@ -170,6 +173,16 @@ TItem="BuildPlanComponentResponseModel"
             QuantityNeeded = item.QuantityNeeded
         };
         await BuildPlanComponentService.UpdateBuildPlanComponent(model, appCancellation.Token);
+        await ForceRefresh();
         StateHasChanged();
+        await _tableRef?.RefreshTable();
+    }
+
+    private async Task ForceRefresh()
+    {
+        if (OnForceRefresh.HasDelegate)
+        {
+            await OnForceRefresh.InvokeAsync();
+        }
     }
 }

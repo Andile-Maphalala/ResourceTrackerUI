@@ -9,7 +9,7 @@ namespace ResourceTrackerUI.Domain.Models.Feature.BuildPlanRequirement
         public int TotalRequired { get; set; }
         public int TotalAvailable { get; set; }
         public int TotalMissing { get; set; }
-        public List<BuildPlanComponentRequirementModel> Requirements { get; set; }
-        public List<BuildPlanFacilityRequirementModel> FacilityRequirements { get; set; }
+        public List<BuildPlanComponentRequirementModel> Requirements { get; set; } = new List<BuildPlanComponentRequirementModel>();
+        public List<BuildPlanFacilityRequirementModel> FacilityRequirements { get; set; } = new List<BuildPlanFacilityRequirementModel>();
     }
 }

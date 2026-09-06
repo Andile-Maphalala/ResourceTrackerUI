@@ -11,7 +11,7 @@ namespace ResourceTrackerUI.Domain.Models.Feature.BuildPlanRequirement
         public int MissingAmount { get; set; }
         public int Type { get; set; }
         public string? ImageUrl { get; set; }
-        public List<ComponentLocationModel> Locations { get; set; } = new();
+        public List<ComponentLocationModel> Locations { get; set; } = new List<ComponentLocationModel>();
 
         public string GetComponentTypeName()
         {
