@@ -1,47 +1,42 @@
-﻿<div class="flex items-center gap-1 bg-surface-container-low rounded-lg p-1 w-fit mb-lg">
-    <button @onclick="() => SelectOption(1)"
-            class="@GetButtonClass(1)">
-        @Option1Name
-    </button>
-    <button @onclick="() => SelectOption(2)"
-            class="@GetButtonClass(2)">
-        @Option2Name
-    </button>
+﻿@using ResourceTrackerUI.Domain.Common.CustomComponents
+<div class="flex items-center gap-1 bg-surface-container-low rounded-lg p-1 w-fit mb-lg">
+    @foreach (var option in Options)
+    {
+        <button @onclick="() => SelectOption(option)"
+                class="@GetButtonClass(option)">
+            @option.Name
+        </button>
+    }
 </div>
 
 @code {
 
     [Parameter]
-    public string Option1Name { get; set; }
+    public List<RtToggleOptionModel> Options { get; set; } = [];
 
-    [Parameter]
-    public EventCallback<int> Option1Event { get; set; }
+    private string? selectedOption;
 
-    [Parameter]
-    public string Option2Name { get; set; }
-
-    [Parameter]
-    public EventCallback<int> Option2Event { get; set; }
-
-    private int selectedOption = 1;
-
-    private async Task SelectOption(int option)
+    protected override void OnParametersSet()
     {
-        selectedOption = option;
-
-        if (option == 1)
-            await Option1Event.InvokeAsync();
-        else
-            await Option2Event.InvokeAsync();
+        if (selectedOption == null && Options.Count > 0)
+            selectedOption = Options[0].Value;
     }
 
-    private string GetButtonClass(int option)
+    private async Task SelectOption(RtToggleOptionModel option)
+    {
+        selectedOption = option.Value;
+
+        if (option.OnSelected.HasDelegate)
+            await option.OnSelected.InvokeAsync();
+    }
+
+    private string GetButtonClass(RtToggleOptionModel option)
     {
         var baseClasses = "px-5 py-2 rounded font-label-caps text-label-caps transition-colors";
         var activeClasses = "bg-primary text-on-primary";
         var inactiveClasses = "text-on-surface-variant hover:text-primary";
 
-        return option == selectedOption
+        return option.Value == selectedOption
             ? $"{baseClasses} {activeClasses}"
             : $"{baseClasses} {inactiveClasses}";
     }

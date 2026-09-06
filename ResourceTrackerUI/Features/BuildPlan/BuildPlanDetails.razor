@@ -1,5 +1,6 @@
 ﻿
 @using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Domain.Common.CustomComponents
 @using ResourceTrackerUI.Domain.Models.Feature.BuildPlan
 @using ResourceTrackerUI.Shared.CustomComponents
 @using ResourceTrackerUI.Shared.CustomComponents.FormControls
@@ -8,7 +9,13 @@
 @page "/buildplandetails/{BuildPlanId:int}"
 
     <HeaderComponent Name="@_model.Name" Description="@_model.Description" ChipName="@_model.GameSaveName" />
-    <RtToggle Option1Name="OVERVIEW" Option1Event='() => SetView("overview")' Option2Name="SETUP" Option2Event='() => SetView("setup")' />
+<RtToggle Options="@(new List<RtToggleOptionModel>
+    {
+          new RtToggleOptionModel { Name = "OVERVIEW", Value = "overview", OnSelected = EventCallback.Factory.Create(this, (Func<Task>)(() => SetView("overview"))) },
+          new RtToggleOptionModel { Name = "SETUP", Value = "setup", OnSelected = EventCallback.Factory.Create(this, (Func<Task>)(() => SetView("setup"))) },
+          new RtToggleOptionModel { Name = "FLOW", Value = "flow", OnSelected = EventCallback.Factory.Create(this, (Func<Task>)(() => SetView("flow"))) }
+
+    })" />
 
 
 @if (_isLoading)
@@ -21,11 +28,15 @@ else
 {
     @if (_view == "setup")
     {
-        <BuildPlanDetailsSetup Model="_model" />
+        <Setup Model="_model" />
     }
     else if (_view == "overview")
     {
-        <BuildPlanDetailsOverview Model="@_model" />
+        <Overview Model="@_model" />
+    }
+    else if (_view == "flow")
+    {
+        <Flow Model="@_model" />
     }
 }
 

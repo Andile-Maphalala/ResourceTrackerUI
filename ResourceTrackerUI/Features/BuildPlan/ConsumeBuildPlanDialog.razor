@@ -1,0 +1,223 @@
+﻿@using MudBlazor
+@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Domain.Models.Feature.BuildPlanRequirement
+@using ResourceTrackerUI.Domain.Models.Feature.Inventory
+@using ResourceTrackerUI.Domain.Models.Feature.Inventory.Consume
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3" Style="max-height: 60vh; overflow-y: auto;">
+
+            @if (!_previews.Any())
+            {
+                <MudText Typo="Typo.body2" Color="Color.Default">Nothing to consume — no components have any required quantity.</MudText>
+            }
+
+            @foreach (var line in _previews)
+            {
+                <MudPaper Class="pa-3" Elevation="0"
+                          Style="@($"border: 1px solid {(line.Shortfall > 0 ? "var(--mud-palette-warning)" : "var(--mud-palette-lines-default)")}; border-radius: 8px; opacity:{(line.Excluded ? "0.5" : "1")};")">
+
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            @if (!string.IsNullOrEmpty(line.ImageUrl))
+                            {
+                                <MudAvatar Size="Size.Small" Square="true">
+                                    <MudImage Src="@line.ImageUrl" />
+                                </MudAvatar>
+                            }
+                            <MudText Typo="Typo.subtitle2">@line.ComponentName</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Default">
+                                need @line.RequiredAmount / allocating @line.AllocatedTotal
+                            </MudText>
+                        </MudStack>
+
+                        <MudCheckBox T="bool" Value="@(!line.Excluded)"
+                                     ValueChanged="@(v => line.Excluded = !v)"
+                                     Dense="true"
+                                     Label="Include" />
+                    </MudStack>
+
+                    @if (line.Shortfall > 0)
+                    {
+                        <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2">
+                            Short by @line.Shortfall — will consume all available stock for the included locations below.
+                        </MudAlert>
+                    }
+
+                    @if (!line.Allocations.Any())
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Default" Class="mt-2">No stock at any linked location.</MudText>
+                    }
+                    else if (line.Allocations.Count == 1)
+                    {
+                        var only = line.Allocations[0];
+                        <MudText Typo="Typo.body2" Class="mt-2">
+                            Take @only.AmountToDeduct from @only.QuestName (has @only.AvailableQuantity)
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudStack Spacing="1" Class="mt-2">
+                            @foreach (var alloc in line.Allocations)
+                            {
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                    <MudText Typo="Typo.body2">@alloc.QuestName (has @alloc.AvailableQuantity)</MudText>
+                                    <MudNumericField T="int"
+                                                     Value="@alloc.AmountToDeduct"
+                                                     ValueChanged="@(v => ChangeAllocation(line, alloc, v))"
+                                                     Min="0"
+                                                     Max="@alloc.AvailableQuantity"
+                                                     Disabled="@line.Excluded"
+                                                     Style="width: 80px;"
+                                                     Immediate="true" />
+                                </MudStack>
+                            }
+                        </MudStack>
+                    }
+                </MudPaper>
+            }
+
+            @if (_errors.Any())
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">
+                    <MudText Typo="Typo.body2" Style="font-weight:500;">Some items couldn't be saved:</MudText>
+                    @foreach (var err in _errors)
+                    {
+                        <MudText Typo="Typo.caption">@err</MudText>
+                    }
+                </MudAlert>
+            }
+
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_isSaving">Cancel</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   Disabled="@(_isSaving || !_previews.Any(p => !p.Excluded && p.AllocatedTotal > 0))"
+                   OnClick="Confirm">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Consume
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public List<BuildPlanComponentRequirementModel> Requirements { get; set; } = new();
+
+    [Inject] 
+    private IInventoryService Service { get; set; } = default!;
+    [Inject] 
+    private ISnackbar Snackbar { get; set; } = default!;
+
+    private List<ConsumeLinePreviewModel> _previews = new();
+    private List<string> _errors = new();
+    private bool _isSaving;
+
+    protected override void OnInitialized()
+    {
+        _previews = BuildPreview(Requirements);
+    }
+
+    private List<ConsumeLinePreviewModel> BuildPreview(List<BuildPlanComponentRequirementModel> requirements)
+    {
+        var result = new List<ConsumeLinePreviewModel>();
+
+        foreach (var req in requirements.Where(r => r.RequiredAmount > 0))
+        {
+            var remaining = req.RequiredAmount;
+            var allocations = new List<ConsumeLocationAllocationModel>();
+
+            foreach (var loc in req.Locations.Where(l => l.Quantity > 0))
+            {
+                if (remaining <= 0) break;
+
+                var take = Math.Min(loc.Quantity, remaining);
+                allocations.Add(new ConsumeLocationAllocationModel
+                {
+                    QuestComponentId = loc.QuestComponentId,
+                    QuestId = loc.QuestId,
+                    QuestName = loc.QuestName,
+                    AvailableQuantity = loc.Quantity,
+                    AmountToDeduct = take
+                });
+                remaining -= take;
+            }
+
+            // Skip components with nothing on hand anywhere - nothing to consume.
+            if (!allocations.Any())
+            {
+                continue;
+            }
+
+            result.Add(new ConsumeLinePreviewModel
+            {
+                ComponentId = req.ComponentId,
+                ComponentName = req.ComponentName,
+                ImageUrl = req.ImageUrl,
+                RequiredAmount = req.RequiredAmount,
+                Allocations = allocations
+            });
+        }
+
+        return result;
+    }
+
+    private void ChangeAllocation(ConsumeLinePreviewModel line, ConsumeLocationAllocationModel alloc, int newValue)
+    {
+        alloc.AmountToDeduct = Math.Clamp(newValue, 0, alloc.AvailableQuantity);
+    }
+
+    private async Task Confirm()
+    {
+        _errors.Clear();
+        _isSaving = true;
+
+        var allocations = _previews
+            .Where(p => !p.Excluded)
+            .SelectMany(p => p.Allocations.Where(a => a.AmountToDeduct > 0))
+            .Select(a => new ConsumeAllocationModel
+            {
+                QuestComponentId = a.QuestComponentId,
+                AmountToDeduct = a.AmountToDeduct
+            })
+            .ToList();
+
+        if (!allocations.Any())
+        {
+            _isSaving = false;
+            return;
+        }
+
+        try
+        {
+            var response = await Service.ConsumeBuildPlanComponents(allocations ,appCancellation.Token);
+
+            if (response.Success)
+            {
+                Snackbar.Add("Inventory updated", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                _errors = response.Errors;
+            }
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Couldn't consume - try again", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

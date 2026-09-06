@@ -79,11 +79,11 @@ namespace ResourceTrackerUI.Application.Services.Feature
             return result;
         }
 
-        public async Task<List<ConsumeBuildPlanComponentsResponseModel>> ConsumeBuildPlanComponents(List<ConsumeAllocationModel> models, CancellationToken cancellationToken)
+        public async Task<ConsumeBuildPlanComponentsResponseModel> ConsumeBuildPlanComponents(List<ConsumeAllocationModel> models, CancellationToken cancellationToken)
         {
-            var dto = _mapper.Map<ConsumeBuildPlanComponentsCommand>(models);
-            var response = await _apiClient.ApiInventoryConsumeBuildPlanComponentsAsync(dto, cancellationToken);
-            var result = _mapper.Map<List<ConsumeBuildPlanComponentsResponseModel>>(response);
+            var dto = _mapper.Map<List<ConsumeAllocation>>(models);
+            var response = await _apiClient.ApiInventoryConsumeBuildPlanComponentsAsync(new ConsumeBuildPlanComponentsCommand { Allocations = dto }, cancellationToken);
+            var result = _mapper.Map<ConsumeBuildPlanComponentsResponseModel>(response);
             return result;
         }
     }

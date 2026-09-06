@@ -1,0 +1,52 @@
+﻿@using MudBlazor.Charts
+@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Domain.Models.Feature.BuildPlan
+@using ResourceTrackerUI.Domain.Models.Feature.BuildPlanRequirement
+<MudPaper Class="doc-section-component-container">
+    <MudChart T="int" ChartType="ChartType.Sankey" Width="1000px" Height="500px" ChartSeries="@_series" />
+</MudPaper>
+
+@if (_stations.Any())
+{
+    <MudSimpleTable Dense="true" Class="mt-3">
+        <thead>
+            <tr><th>Component</th><th>Crafted At</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var s in _stations)
+            {
+                <tr><td>@s.ComponentName</td><td>@s.FacilityName</td></tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    [Parameter]
+    public BuildPlanModel Model { get; set; }
+
+    [Inject]
+    private IBuildPlanRequirementService Service { get; set; }
+
+
+    private List<ChartSeries<int>> _series = new();
+    private List<ComponentFacilityModel> _stations = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await Service.GetBuildPlanSankey(Model.Id, appCancellation.Token);
+        var sankeyData = response.Edges
+                    .Select(e => new SankeyEdge<int>(e.Source, e.Target, e.Value))
+                    .ToList();
+        _series = new List<ChartSeries<int>>
+        {
+            new()
+            {
+                Name = response.BuildPlanName,
+                Data = sankeyData
+            }
+        };
+
+        _stations = response.CraftingStations;
+    }
+}

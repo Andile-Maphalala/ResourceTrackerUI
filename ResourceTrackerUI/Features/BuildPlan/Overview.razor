@@ -30,6 +30,11 @@ else
             <ValueComponent Value="@_model.TotalMissing" Description="MISSING" />
             <ValueComponent Value="@_model.FacilityRequirements.Count" Description="FACILITIES REQUIRED" />
     </div>
+
+    <div class="flex justify-end items-start">
+
+        <MudFab Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.DeleteSweep" Label="Consume Components" OnClick="OpenConsumeDialog" />
+</div>
     <RtTable @ref="_tableRef"
              TItem="BuildPlanComponentRequirementModel"
              LoadData="LoadItems"
@@ -59,6 +64,8 @@ else
     private IBuildPlanRequirementService BuildPlanRequirementService { get; set; }
     [Inject]
     private IBuildPlanQuestService BuildPlanQuestService { get; set; }
+    [Inject]
+    private IDialogService DialogService { get; set; }
 
     private GetBuildPlanRequirementsResponseModel _model { get; set; } = new GetBuildPlanRequirementsResponseModel();
     private bool _isLoading { get; set; } = true;
@@ -102,6 +109,10 @@ else
      {
          _isLoading = true;
          _model = await BuildPlanRequirementService.GetBuildPlanRequirements(Model.Id, appCancellation.Token);
+        if(_tableRef != null)
+        {
+            await _tableRef?.RefreshTable();
+        }
          _isLoading = false;
          await InvokeAsync(StateHasChanged);
      }
@@ -208,6 +219,22 @@ else
         if (response != null)
         {
             _Locations = response;
+        }
+    }
+
+    private async Task OpenConsumeDialog()
+    {
+        var parameters = new DialogParameters<ConsumeBuildPlanDialog>
+        {
+            { x => x.Requirements, _model.Requirements }
+        };
+
+        var dialog = await DialogService.ShowAsync<ConsumeBuildPlanDialog>("Consume Components", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await RefreshData();
         }
     }
 }

@@ -15,10 +15,10 @@ namespace ResourceTrackerUI.Application.Services.Feature
             return mapper.Map<GetBuildPlanRequirementsResponseModel>(response);
         }
 
-        public async Task<GetBuildPlanSankeyResponse> GetBuildPlanSankey(int buildPlanId, CancellationToken cancellationToken)
+        public async Task<GetBuildPlanSankeyResponseModel> GetBuildPlanSankey(int buildPlanId, CancellationToken cancellationToken)
         {
             var response = await apiClient.ApiBuildPlanRequirementGetBuildPlanSankeyAsync(buildPlanId, cancellationToken);
-            return mapper.Map<GetBuildPlanSankeyResponse>(response);
+            return mapper.Map<GetBuildPlanSankeyResponseModel>(response);
         }
     }
 }

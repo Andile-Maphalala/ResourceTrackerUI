@@ -1,5 +1,6 @@
 ﻿@page "/inventory"
 @using Microsoft.AspNetCore.Authorization
+@using ResourceTrackerUI.Domain.Common.CustomComponents
 @using ResourceTrackerUI.Shared.CustomComponents
 @using ResourceTrackerUI.Shared.CustomComponents.FormControls
 @attribute [Authorize]
@@ -11,7 +12,11 @@
         <HeaderComponent Name="Inventory" Description="@GameSaveState.ActiveSaveName" ChipName="@GameSaveState.ActiveGameName" />
         <div class="flex items-center gap-3">
             @* View toggle *@
-            <RtToggle Option1Name="BY LOCATION" Option1Event='() => SetView("location")' Option2Name="TOTALS" Option2Event='() => SetView("aggregate")' />
+            <RtToggle Options="@(new List<RtToggleOptionModel>
+          {
+          new RtToggleOptionModel { Name = "location", Value = "location", OnSelected = EventCallback.Factory.Create(this, (() => SetView("location"))) },
+          new RtToggleOptionModel { Name = "TOTALS", Value = "aggregate", OnSelected = EventCallback.Factory.Create(this, (() => SetView("aggregate"))) }
+          })" />
         </div>
     </div>
 

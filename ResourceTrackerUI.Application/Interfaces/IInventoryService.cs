@@ -16,6 +16,6 @@ namespace ResourceTrackerUI.Application.Interfaces
         Task<InventoryModel> GetInventory(int Id, CancellationToken cancellationToken);
         Task<PageableResponseModel<SearchInventoryResponseModel>> SearchInventory(SearchInventoryQueryModel query, CancellationToken cancellationToken);
         Task<List<GetInventoryComponentQuestResponseModel>> GetInventoryComponentQuests(int componentId, int buildPlanId, CancellationToken cancellationToken);
-        Task<List<ConsumeBuildPlanComponentsResponseModel>> ConsumeBuildPlanComponents(List<ConsumeAllocationModel> models, CancellationToken cancellationToken);
+        Task<ConsumeBuildPlanComponentsResponseModel> ConsumeBuildPlanComponents(List<ConsumeAllocationModel> models, CancellationToken cancellationToken);
     }
 }

@@ -124,7 +124,8 @@
     [Inject]
     private IInventoryService InventoryService { get; set; }
     [Inject]
-    private ISnackbar Snackbar { get; set; } = default!;
+    private ISnackbar Snackbar { get; set; }
+
 
     private InventoryCrudModel _model { get; set; } = new InventoryCrudModel();
 
