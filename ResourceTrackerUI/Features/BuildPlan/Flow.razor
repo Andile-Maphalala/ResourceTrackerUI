@@ -3,8 +3,26 @@
 @using ResourceTrackerUI.Domain.Models.Feature.BuildPlan
 @using ResourceTrackerUI.Domain.Models.Feature.BuildPlanRequirement
 <MudPaper Class="doc-section-component-container">
-    <MudChart T="int" ChartType="ChartType.Sankey" Width="1000px" Height="500px" ChartSeries="@_series" />
+    <MudChart T="int" ChartType="ChartType.Sankey" Width="@($"{_width}px")" Height="@($"{_height}px")" ChartSeries="@_series" ChartOptions="@_options" />
 </MudPaper>
+
+<MudGrid>
+    <MudItem xs="12" md="4">
+        <MudSlider @bind-Value="_options.NodeWidth" Max="50" ValueLabel="true">Node width</MudSlider>
+    </MudItem>
+    <MudItem xs="12" md="4">
+        <MudSlider @bind-Value="_options.MinVerticalSpacing" Max="30" ValueLabel="true">Min. vertical spacing</MudSlider>
+    </MudItem>
+    <MudItem xs="12" md="4">
+        <MudSlider @bind-Value="_options.EdgeOpacity" Step="0.01" Max="1" ValueLabel="true">Edge opacity</MudSlider>
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudSlider @bind-Value="_width" ValueLabel="true" Max="2000">Chart width</MudSlider>
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudSlider @bind-Value="_height" ValueLabel="true" Max="2000">Chart height</MudSlider>
+    </MudItem>
+</MudGrid>
 
 @if (_stations.Any())
 {
@@ -30,7 +48,16 @@
 
     private List<ChartSeries<int>> _series = new();
     private List<ComponentFacilityModel> _stations = new();
-
+    private readonly SankeyChartOptions _options = new()
+    {
+        ShowLabels = true,
+        ShowNodeValues = false,
+        HighlightOnHover = true,
+        NodeWidth = 5,
+        MinVerticalSpacing = 10,
+    };
+    private int _width = 1500;
+    private int _height = 550;
     protected override async Task OnInitializedAsync()
     {
         var response = await GetData!(false);
@@ -48,4 +75,5 @@
 
         _stations = response.CraftingStations;
     }
+
 }

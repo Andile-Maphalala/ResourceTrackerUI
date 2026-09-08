@@ -102,7 +102,7 @@
      private async Task RefreshData()
      {
          _isLoading = true;
-        _model = await GetData!(false);
+        _model = await GetData!(_forceRefresh);
         if(_tableRef != null)
         {
             await _tableRef?.RefreshTable();
