@@ -1,0 +1,94 @@
+@page "/facilities"
+@using Microsoft.AspNetCore.Authorization
+@using ResourceTrackerUI.ApiClient
+@using ResourceTrackerUI.Application.Common
+@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Domain.Models.Feature.Quest
+@using ResourceTrackerUI.Shared.CustomComponents
+@attribute [Authorize]
+
+<div class="max-w-6xl mx-auto space-y-8">
+
+    <HeaderComponent Name="Facilities" Description="@GameSaveState.ActiveSaveName" ChipName="@GameSaveState.ActiveGameName" />
+
+    @if (!GameSaveState.HasActiveSave)
+    {
+        <div class="glass-panel rounded-xl p-16 text-center">
+            <span class="material-symbols-outlined text-5xl text-on-surface-variant">warehouse</span>
+            <p class="text-body text-on-surface-variant mt-4">
+                Select a game save to manage the facilities built at each location.
+            </p>
+        </div>
+    }
+    else
+    {
+        @if (_isLoading)
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+        }
+
+        @if (!_isLoading && !_quests.Any())
+        {
+            <div class="glass-panel rounded-xl p-16 text-center">
+                <span class="material-symbols-outlined text-5xl text-on-surface-variant">location_off</span>
+                <p class="text-body text-on-surface-variant mt-4">
+                    No locations yet. Create one on the Inventory page before recording facilities.
+                </p>
+            </div>
+        }
+
+        @foreach (var quest in _quests)
+        {
+            <FacilityLocationComponent Quest="quest" />
+        }
+    }
+
+</div>
+
+@code {
+
+    [Inject]
+    private IQuestService QuestService { get; set; }
+    [Inject]
+    private GameSaveState GameSaveState { get; set; }
+    [Inject]
+    private ISnackbar Snackbar { get; set; }
+
+    private bool _isLoading { get; set; }
+    private List<SearchQuestsResponseModel> _quests { get; set; } = new List<SearchQuestsResponseModel>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!GameSaveState.HasActiveSave) return;
+        await LoadQuests();
+    }
+
+    private async Task LoadQuests()
+    {
+        _isLoading = true;
+
+        try
+        {
+            var response = await QuestService.SearchQuest(new SearchQuestsQueryModel
+            {
+                GameSaveId = GameSaveState.ActiveGameSaveId,
+                PageSize = int.MaxValue,
+                OrderBy = "Id"
+            }, appCancellation.Token);
+
+            _quests = response.Data.ToList();
+        }
+        catch (ApiException ex)
+        {
+            Snackbar.Add(ApiExceptionHelper.GetMessage(ex), Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Could not load locations: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

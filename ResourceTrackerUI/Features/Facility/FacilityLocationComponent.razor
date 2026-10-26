@@ -1,0 +1,340 @@
+@using ResourceTrackerUI.ApiClient
+@using ResourceTrackerUI.Application.Common
+@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Domain.Enums
+@using ResourceTrackerUI.Domain.Models.Feature.Components
+@using ResourceTrackerUI.Domain.Models.Feature.PlayerFacility
+@using ResourceTrackerUI.Domain.Models.Feature.Quest
+@using ResourceTrackerUI.Shared.CustomComponents.FormControls
+@using DomainOrderDirection = ResourceTrackerUI.Domain.Enums.OrderDirectionEnum
+
+<div class="glass-panel rounded-xl overflow-hidden">
+
+    @* Location header *@
+    <div class="flex items-center gap-4 p-5 cursor-pointer hover:bg-white/5 transition-colors
+        @(_isExpanded ? "border-b border-white/5" : "")"
+         @onclick="Toggle">
+
+        <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-3">
+                <p class="font-bold text-on-surface">@Quest.Name</p>
+                @if (!string.IsNullOrEmpty(Quest.Location))
+                {
+                    <span class="text-[10px] font-label-caps text-on-surface-variant
+                        bg-surface-container px-2 py-0.5 rounded-full">
+                        @Quest.Location
+                    </span>
+                }
+            </div>
+        </div>
+
+        @if (_loaded)
+        {
+            <span class="text-body-sm text-on-surface-variant mr-2">
+                @_facilities.Count facilit@(_facilities.Count == 1 ? "y" : "ies")
+            </span>
+        }
+
+        <span class="material-symbols-outlined text-on-surface-variant transition-transform duration-200
+            @(_isExpanded ? "rotate-180" : "")">
+            expand_more
+        </span>
+    </div>
+
+    @* Facilities at this location *@
+    @if (_isExpanded)
+    {
+        <div class="p-5 space-y-3">
+            @if (_isLoading)
+            {
+                <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+            }
+
+            @if (_loaded && !_facilities.Any())
+            {
+                <p class="text-body-sm text-on-surface-variant">
+                    No facilities recorded here yet.
+                </p>
+            }
+
+            @foreach (var facility in _facilities)
+            {
+                <div class="flex items-center justify-between gap-3 border border-outline-variant/30 rounded-lg p-3"
+                     @key="facility.Id">
+                    <div class="flex items-center gap-3 min-w-0">
+                        @if (!string.IsNullOrEmpty(facility.ComponentImageUrl))
+                        {
+                            <img src="@facility.ComponentImageUrl" class="w-9 h-9 rounded object-cover" alt="@facility.ComponentName" />
+                        }
+                        else
+                        {
+                            <span class="material-symbols-outlined text-primary text-3xl">domain</span>
+                        }
+                        <p class="font-bold text-on-surface truncate">@facility.ComponentName</p>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-label-caps text-on-surface-variant">LVL</span>
+                        <MudNumericField T="int"
+                                         Value="@facility.Level"
+                                         ValueChanged="@(level => ChangeLevel(facility, level))"
+                                         Min="1"
+                                         HideSpinButtons="true"
+                                         Immediate="false"
+                                         Disabled="@_savingIds.Contains(facility.Id)"
+                                         Style="width: 70px;" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Size="Size.Small"
+                                       Color="Color.Error"
+                                       Disabled="@_savingIds.Contains(facility.Id)"
+                                       OnClick="@(() => DeleteFacility(facility))" />
+                    </div>
+                </div>
+            }
+
+            @if (_loaded)
+            {
+                <div class="flex items-center gap-3 pt-2">
+                    <div class="flex-1 min-w-0">
+                        <RtSelect @key="_pickerReset"
+                                  @bind-Value="_newComponentId"
+                                  LoadData="LoadFacilityOptions"
+                                  SearchData="SearchFacilityOptions"
+                                  SearchPlaceholder="Search facilities"
+                                  EnableImages="true"
+                                  EnableSearch="true"
+                                  Clearable="true"
+                                  Dense="true"
+                                  Disabled="@_isSavingNew" />
+                    </div>
+
+                    <MudNumericField T="int"
+                                     @bind-Value="_newLevel"
+                                     Min="1"
+                                     HideSpinButtons="true"
+                                     Disabled="@_isSavingNew"
+                                     Style="width: 80px;" />
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               Disabled="@(_newComponentId == null || _isSavingNew)"
+                               OnClick="AddFacility">
+                        Add
+                    </MudButton>
+                </div>
+            }
+        </div>
+    }
+
+</div>
+
+@code {
+
+    private const int ComponentPageSize = 100;
+
+    [Parameter, EditorRequired]
+    public SearchQuestsResponseModel Quest { get; set; } = default!;
+
+    [Inject]
+    private IPlayerFacilityService PlayerFacilityService { get; set; }
+    [Inject]
+    private IComponentService ComponentService { get; set; }
+    [Inject]
+    private GameSaveState GameSaveState { get; set; }
+    [Inject]
+    private IDialogService DialogService { get; set; }
+    [Inject]
+    private ISnackbar Snackbar { get; set; }
+
+    private bool _isExpanded;
+    private bool _isLoading;
+    private bool _loaded;
+    private bool _isSavingNew;
+    private int _newLevel = 1;
+    private int? _newComponentId;
+    private int _pickerReset;
+
+    private List<PlayerFacilityModel> _facilities = new();
+    private List<SearchComponentResponseModel>? _facilityOptions;
+    private readonly HashSet<int> _savingIds = new();
+
+    private async Task Toggle()
+    {
+        _isExpanded = !_isExpanded;
+
+        if (_isExpanded && !_loaded)
+        {
+            await LoadFacilities();
+        }
+    }
+
+    private async Task LoadFacilities()
+    {
+        _isLoading = true;
+
+        try
+        {
+            _facilities = await PlayerFacilityService.GetPlayerFacilitiesByQuest(Quest.Id, appCancellation.Token);
+            _loaded = true;
+        }
+        catch (ApiException ex)
+        {
+            Snackbar.Add(ApiExceptionHelper.GetMessage(ex), Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Could not load facilities: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task ChangeLevel(PlayerFacilityModel facility, int level)
+    {
+        level = Math.Max(1, level);
+        if (level == facility.Level) return;
+
+        if (!_savingIds.Add(facility.Id)) return;
+
+        facility.Level = level;
+
+        try
+        {
+            await PlayerFacilityService.UpdatePlayerFacility(facility.Id, level, appCancellation.Token);
+        }
+        catch (ApiException ex)
+        {
+            Snackbar.Add(ApiExceptionHelper.GetMessage(ex), Severity.Error);
+            await LoadFacilities();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Could not update the facility level: {ex.Message}", Severity.Error);
+            await LoadFacilities();
+        }
+        finally
+        {
+            _savingIds.Remove(facility.Id);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task AddFacility()
+    {
+        if (_newComponentId is not int componentId || componentId <= 0) return;
+
+        _isSavingNew = true;
+
+        try
+        {
+            await PlayerFacilityService.CreatePlayerFacility(
+                componentId, Quest.Id, Math.Max(1, _newLevel), appCancellation.Token);
+
+            _newComponentId = null;
+            _newLevel = 1;
+            _pickerReset++;
+
+            await LoadFacilities();
+        }
+        catch (ApiException ex)
+        {
+            Snackbar.Add(ApiExceptionHelper.GetMessage(ex), Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Could not add the facility: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSavingNew = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task DeleteFacility(PlayerFacilityModel facility)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Remove facility",
+            $"Remove {facility.ComponentName} from {Quest.Name}?",
+            yesText: "Remove",
+            cancelText: "Cancel");
+
+        if (confirmed != true) return;
+
+        _savingIds.Add(facility.Id);
+
+        try
+        {
+            await PlayerFacilityService.DeletePlayerFacility(facility.Id, appCancellation.Token);
+            await LoadFacilities();
+        }
+        catch (ApiException ex)
+        {
+            Snackbar.Add(ApiExceptionHelper.GetMessage(ex), Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Could not remove the facility: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _savingIds.Remove(facility.Id);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task<IEnumerable<object>> LoadFacilityOptions()
+    {
+        _facilityOptions ??= await SearchComponents(string.Empty);
+        return AvailableOptions(_facilityOptions);
+    }
+
+    private async Task<IEnumerable<object>> SearchFacilityOptions(string term)
+    {
+        var results = await SearchComponents(term);
+        return AvailableOptions(results);
+    }
+
+    /// <summary>
+    /// A facility can only stand at a location once: drop anything already recorded here so the
+    /// picker cannot create a duplicate row.
+    /// </summary>
+    private IEnumerable<object> AvailableOptions(IEnumerable<SearchComponentResponseModel> options)
+    {
+        var owned = _facilities.Select(f => f.ComponentId).ToHashSet();
+        return options.Where(o => !owned.Contains(o.Id)).Cast<object>();
+    }
+
+    private async Task<List<SearchComponentResponseModel>> SearchComponents(string term)
+    {
+        try
+        {
+            var data = await ComponentService.SearchComponent(new SearchComponentQueryModel
+            {
+                GameId = GameSaveState.ActiveGameId,
+                SearchTerms = term,
+                Type = (int)ComponentTypeEnum.Facility,
+                PageSize = ComponentPageSize,
+                OrderBy = "Name",
+                OrderDirection = DomainOrderDirection.Ascending
+            }, appCancellation.Token);
+
+            return data.Data.ToList();
+        }
+        catch (ApiException ex)
+        {
+            Snackbar.Add(ApiExceptionHelper.GetMessage(ex), Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Could not load facilities: {ex.Message}", Severity.Error);
+        }
+
+        return new List<SearchComponentResponseModel>();
+    }
+}

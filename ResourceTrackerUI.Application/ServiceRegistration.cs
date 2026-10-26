@@ -34,6 +34,7 @@ namespace ResourceTrackerUI.Application
             services.AddScoped<IGameSaveService, GameSaveService>();
             services.AddScoped<IInventoryService, InventoryService>();
             services.AddScoped<IQuestService, QuestService>();
+            services.AddScoped<IPlayerFacilityService, PlayerFacilityService>();
             services.AddScoped<IBuildPlanService, BuildPlanService>();
             services.AddScoped<IBuildPlanComponentService, BuildPlanComponentService>();
             services.AddScoped<IBuildPlanRequirementService, BuildPlanRequirementService>();
