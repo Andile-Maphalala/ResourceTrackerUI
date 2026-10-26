@@ -9,6 +9,7 @@ namespace ResourceTrackerUI.Application.Interfaces
         Task<int> CreateGame(GameModel model, CancellationToken cancellationToken);
         Task UpdateGame(GameModel model, CancellationToken cancellationToken);
         Task DeleteGame(int id, CancellationToken cancellationToken);
+        Task<PurgeGameResponseModel> PurgeGame(int id, string confirmName, CancellationToken cancellationToken);
         Task<GameModel> GetGame(int Id, CancellationToken cancellationToken);
         Task<PageableResponseModel<SearchGamesResponseModel>> SearchGame(SearchGamesQueryModel model, CancellationToken cancellationToken);
     }

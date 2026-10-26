@@ -1,0 +1,124 @@
+@page "/admin/recipe"
+@using Microsoft.AspNetCore.Authorization
+@using ResourceTrackerUI.Shared.CustomComponents.FormControls
+@using ResourceTrackerUI.Domain.Enums
+@attribute [Authorize(Roles = "Administrator")]
+
+<h3>Recipes</h3>
+
+<MudPaper Class="p-4">
+    <MudGrid>
+        <MudItem xs="12" sm="4">
+            <RtSelect Label="Game"
+                      @bind-Value="_gameId"
+                      For="@(() => _gameId)"
+                      LoadData="LoadGameOptions"
+                      EnableImages="true"
+                      OnValueChanged="OnGameChanged" />
+        </MudItem>
+        <MudItem xs="12" sm="8">
+            <RtSelect @key="_gameId"
+                      Label="Component"
+                      @bind-Value="_componentId"
+                      For="@(() => _componentId)"
+                      LoadData="LoadComponentOptions"
+                      SearchData="SearchComponentOptions"
+                      SearchPlaceholder="Search all components"
+                      HelperText="@(_gameId.HasValue ? "The first 100 by name are listed - type to search the rest." : null)"
+                      EnableImages="true"
+                      EnableSearch="true"
+                      Disabled="@(!_gameId.HasValue)"
+                      OnValueChanged="OnComponentChanged" />
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (!_componentId.HasValue)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-4">
+        Select a game, then a component, to view its recipe.
+    </MudAlert>
+}
+else if (_loadingRecipes)
+{
+    <MudPaper Class="p-4 mt-4">
+        <MudSkeleton Height="72px" />
+    </MudPaper>
+}
+else
+{
+    <MudPaper Class="p-4 mt-4">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+            <MudText Typo="Typo.h6">Recipe for @_componentName</MudText>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       Disabled="@(_recipes.Count > 0)"
+                       OnClick="OpenCreate">
+                Add Recipe
+            </MudButton>
+        </MudStack>
+
+        @if (_recipes.Count > 0)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Text" Dense="true" Class="mb-3">
+                Only one recipe per output is supported. Edit or delete the existing recipe instead of adding another.
+            </MudAlert>
+
+            <MudTable Items="_recipes" Dense="true" Hover="true" Bordered="true" Striped="true">
+                <HeaderContent>
+                    <MudTh>Output</MudTh>
+                    <MudTh>Amount Made</MudTh>
+                    <MudTh>Station</MudTh>
+                    <MudTh>Ingredients</MudTh>
+                    <MudTh Style="width:1%;">Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.ComponentName</MudTd>
+                    <MudTd>@context.AmountMade</MudTd>
+                    <MudTd>@StationText(context)</MudTd>
+                    <MudTd>
+                        @if (context.Ingredients.Count == 0)
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">None</MudText>
+                        }
+                        else
+                        {
+                            <MudStack Row="true" Spacing="1" Class="flex-wrap">
+                                @foreach (var ingredient in context.Ingredients)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+                                        @($"{ingredient.ComponentName} x {ingredient.AmountRequired}")
+                                    </MudChip>
+                                }
+                            </MudStack>
+                        }
+                    </MudTd>
+                    <MudTd>
+                        <MudStack Row="true" Spacing="1">
+                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Info"
+                                       StartIcon="@Icons.Material.Filled.Visibility"
+                                       OnClick="@(() => OpenAction(context, FormModeEnum.View))">
+                                View
+                            </MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Edit"
+                                       OnClick="@(() => OpenAction(context, FormModeEnum.Update))">
+                                Edit
+                            </MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Error"
+                                       StartIcon="@Icons.Material.Filled.Delete"
+                                       OnClick="@(() => OpenAction(context, FormModeEnum.Delete))">
+                                Delete
+                            </MudButton>
+                        </MudStack>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2">@_componentName has no recipe.</MudText>
+        }
+    </MudPaper>
+}

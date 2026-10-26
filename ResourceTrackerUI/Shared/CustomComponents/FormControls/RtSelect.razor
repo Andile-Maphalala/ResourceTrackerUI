@@ -96,8 +96,12 @@
            OnOpen="@this.OnOpen"
            OnClose="@this.OnClose"
            OnChange="@this.OnChange"
-           ItemCollection="@_dataList.Select(d => d.Value).ToList()"
+           ItemCollection="@_itemValues"
            SearchBox="@this.EnableSearch"
+           SearchBoxPlaceholder="@this.SearchPlaceholder"
+           SearchFunc="@SearchFilter"
+           OnSearchStringChange="OnSearchStringChanged"
+           Virtualize="@EnableVirtualize"
            ToStringFunc="@GetItemText"
             >
 
@@ -152,11 +156,60 @@
     [Parameter]
     public bool EnableSearch { get; set; } = false;
 
+    /// <summary>
+    /// Placeholder shown in the search box when <see cref="EnableSearch"/> is on.
+    /// </summary>
+    [Parameter]
+    public string? SearchPlaceholder { get; set; }
+
+    /// <summary>
+    /// Optional server-side search. When set, every change of the search box calls this with the
+    /// typed text and replaces the options with the result. Use it for lists too large to load
+    /// in one go - pair it with a small PageSize in the caller.
+    /// </summary>
+    [Parameter]
+    public Func<string, Task<IEnumerable<object>>>? SearchData { get; set; }
+
+    /// <summary>
+    /// When <see cref="SearchData"/> does the searching the list must not filter again: the server
+    /// may match on fields that are not part of the display text (the description, for one), and a
+    /// second "contains" pass over the label would hide results the server just returned.
+    /// </summary>
+    private Func<T?, string?, bool>? SearchFilter => SearchData is null ? null : AlwaysMatch;
+
+    private static bool AlwaysMatch(T? value, string? searchString) => true;
+
+    /// <summary>
+    /// Debounce applied before <see cref="SearchData"/> is called, in milliseconds.
+    /// </summary>
+    [Parameter]
+    public int SearchDebounceMs { get; set; } = 300;
+
+    /// <summary>
+    /// Only renders the visible items. Costs nothing for small lists and is what keeps large
+    /// ones (thousands of components) from locking up the browser. Requires ItemCollection,
+    /// which this component always supplies.
+    /// </summary>
+    [Parameter]
+    public bool EnableVirtualize { get; set; } = true;
+
     private List<SelectListModel<T>> _dataList = new List<SelectListModel<T>>();
+
+    /// <summary>
+    /// The options handed to <see cref="MudSelectExtended{T}"/>. This is deliberately one stable
+    /// instance that only ever gets cleared and refilled: a select hosts its list component with a
+    /// parameter freeze (CodeBeam issue #645), so the list keeps the collection instance it was
+    /// created with and ignores every later parameter update. Replacing the list would leave an
+    /// open dropdown showing the old options - which is why a server-side search only "worked"
+    /// after closing and reopening it. Mutating this instance in place is what lets the results
+    /// reach an already open list.
+    /// </summary>
+    private readonly List<T> _itemValues = new();
     private bool _dataLoaded = false;
     private bool _isLoading = false;
     private string _displayText;
     private bool _isInitialized = false;
+    private CancellationTokenSource? _searchCts;
 
     protected override async Task OnInitializedAsync()
     {
@@ -241,14 +294,71 @@
             return;
 
         var Data = await LoadData.Invoke();
-        _dataList = Data.Select(item => new SelectListModel<T>
+        ApplyData(Data);
+    }
+
+    private void ApplyData(IEnumerable<object> data)
+    {
+        // Keep the entry for the current value: when the caller pages or searches, the selected
+        // item is often not in the new result set, and dropping it would blank the display.
+        var selected = _dataList.FirstOrDefault(x => EqualityComparer<T>.Default.Equals(x.Value, Value));
+
+        var list = data.Select(item => new SelectListModel<T>
         {
             Value = GetPropertyValue<T>(item, ValueField),
             Text = GetPropertyValue<string>(item, TextField),
             ImageUrl = GetPropertyValue<string>(item, ImageField)
         }).ToList();
 
+        if (selected != null && !list.Any(x => EqualityComparer<T>.Default.Equals(x.Value, Value)))
+        {
+            list.Insert(0, selected);
+        }
+
+        _dataList = list;
+
+        // Refill in place - see the comment on _itemValues.
+        _itemValues.Clear();
+        _itemValues.AddRange(list.Select(x => x.Value));
+
         _dataLoaded = true;
+    }
+
+    private async Task OnSearchStringChanged(string searchString)
+    {
+        if (SearchData == null)
+            return;
+
+        _searchCts?.Cancel();
+        var cts = new CancellationTokenSource();
+        _searchCts = cts;
+
+        try
+        {
+            await Task.Delay(SearchDebounceMs, cts.Token);
+
+            var data = await SearchData(searchString ?? string.Empty);
+
+            if (cts.IsCancellationRequested)
+                return;
+
+            ApplyData(data);
+            UpdateDisplayText();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (OperationCanceledException)
+        {
+            // Superseded by a newer keystroke.
+        }
+        finally
+        {
+            if (ReferenceEquals(_searchCts, cts))
+            {
+                _searchCts = null;
+            }
+
+            cts.Dispose();
+        }
     }
 
     private TProperty GetPropertyValue<TProperty>(object item, string propertyName)
