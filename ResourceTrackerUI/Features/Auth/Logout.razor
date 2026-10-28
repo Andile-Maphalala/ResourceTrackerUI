@@ -77,9 +77,6 @@
     private ICurrentUserService _userService { get; set; }
 
     [Inject]
-    private ILocalStorageService _storage { get; set; }
-
-    [Inject]
     private GameSaveState _gameSaveState { get; set; }
 
     [Inject]
@@ -114,8 +111,7 @@
         // Stop any in-flight API calls before the session is cleared.
         appCancellation.CancelAll();
 
-        _gameSaveState.ClearActiveSave();
-        await _storage.RemoveItemAsync("activeGameSave");
+        await _gameSaveState.ClearActiveSaveAsync();
 
         await _authProvider.MarkUserAsLoggedOutAsync();
 

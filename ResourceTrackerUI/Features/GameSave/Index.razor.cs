@@ -43,7 +43,7 @@ namespace ResourceTrackerUI.Features.GameSave
             // Auto-expand the game that owns the current active save
             if (GameSaveState.HasActiveSave)
             {
-                var activeGame = _games.FirstOrDefault(g => g.Name == GameSaveState.ActiveGameName);
+                var activeGame = _games.FirstOrDefault(g => g.Id == GameSaveState.ActiveGameId);
                 if (activeGame != null)
                     await ExpandGame(activeGame.Id);
             }
@@ -147,7 +147,7 @@ namespace ResourceTrackerUI.Features.GameSave
             {
                 // If deleted save was the active one, clear state
                 if (fullSave.Id == GameSaveState.ActiveGameSaveId)
-                    GameSaveState.ClearActiveSave();
+                    await GameSaveState.ClearActiveSaveAsync();
 
                 _savesPerGame.Remove(game.Id);
                 await ExpandGame(game.Id);

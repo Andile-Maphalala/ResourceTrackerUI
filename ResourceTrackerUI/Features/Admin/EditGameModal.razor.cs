@@ -82,7 +82,7 @@ namespace ResourceTrackerUI.Features.Admin
 
                 if (GameSaveState.ActiveGameId == Model.Id)
                 {
-                    GameSaveState.ClearActiveSave();
+                    await GameSaveState.ClearActiveSaveAsync();
                 }
 
                 Snackbar.Add(

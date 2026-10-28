@@ -8,28 +8,39 @@
 @using ResourceTrackerUI.Domain.Models.Feature.BuildPlan
 
 @attribute [Authorize]
+@implements IDisposable
 
 <MudPaper Class="p-4">
-    <RtTable @ref="_tableRef" TItem="SearchBuildPlansResponseModel" OnAction="Actions" LoadData="LoadData" ShowAllActionsExceptBulk="true">
-        <AdvancedSearchContent>
-            <MudGrid>
-                <MudItem xs="6" sm="6">
-                    <RtInput @bind-Value="_searchModel.Name" For="@(() => _searchModel.Name)" OnValueChanged="OnSearchChange" />
-                </MudItem>
-                <MudItem xs="6" sm="6">
-                    <RtInput @bind-Value="_searchModel.Description" For="@(() => _searchModel.Description)" OnValueChanged="OnSearchChange" />
-                </MudItem>
-            </MudGrid>
-        </AdvancedSearchContent>
-    </RtTable>
+    @if (!GameSaveState.HasActiveSave)
+    {
+        <div class="glass-panel rounded-xl p-16 text-center">
+            <span class="material-symbols-outlined text-5xl text-on-surface-variant">save</span>
+            <p class="text-body text-on-surface-variant mt-4">
+                Select a game save to view its build plans.
+            </p>
+        </div>
+    }
+    else
+    {
+        <RtTable @key="GameSaveState.ActiveGameSaveId" @ref="_tableRef" TItem="SearchBuildPlansResponseModel" OnAction="Actions" LoadData="LoadData" ShowAllActionsExceptBulk="true">
+            <AdvancedSearchContent>
+                <MudGrid>
+                    <MudItem xs="6" sm="6">
+                        <RtInput @bind-Value="_searchModel.Name" For="@(() => _searchModel.Name)" OnValueChanged="OnSearchChange" />
+                    </MudItem>
+                    <MudItem xs="6" sm="6">
+                        <RtInput @bind-Value="_searchModel.Description" For="@(() => _searchModel.Description)" OnValueChanged="OnSearchChange" />
+                    </MudItem>
+                </MudGrid>
+            </AdvancedSearchContent>
+        </RtTable>
+    }
 </MudPaper>
 
 
 @code {
-    [Inject] 
+    [Inject]
     private IBuildPlanService Service { get; set; } = default!;
-    [Inject] 
-    private GameSaveState BuildPlanSaveState { get; set; }
     [Inject]
     private IDialogService dialogService { get; set; }
     [Inject]
@@ -40,13 +51,30 @@
     private SearchBuildPlansQueryModel _searchModel { get; set; }
     private RtTable<SearchBuildPlansResponseModel> _tableRef;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
+    {
+        GameSaveState.OnChange += OnActiveSaveChanged;
+        BuildSearchModel();
+    }
+
+    public void Dispose()
+    {
+        GameSaveState.OnChange -= OnActiveSaveChanged;
+    }
+
+    private void OnActiveSaveChanged()
+    {
+        BuildSearchModel();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void BuildSearchModel()
     {
         _searchModel = new SearchBuildPlansQueryModel
         {
             OrderBy = "Id",
             OrderDirection = OrderDirectionEnum.Descending,
-            GameSaveId = BuildPlanSaveState.ActiveGameSaveId
+            GameSaveId = GameSaveState.ActiveGameSaveId
         };
     }
 

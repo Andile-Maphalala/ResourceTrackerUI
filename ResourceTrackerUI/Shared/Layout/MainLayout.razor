@@ -101,9 +101,6 @@
     private NavigationManager _navigation { get; set; }
     [Inject] 
     private JwtAuthStateProvider _authProvider { get; set; }
-    [Inject]
-    private GameSaveState _gameSaveState { get; set; }
-
     private bool IsAuthenticated { get; set; } = false;
     private bool IsAdmin { get; set; } = false;
     private string Name { get; set; } = string.Empty;
@@ -127,7 +124,6 @@
         Name = IsAuthenticated ? await _userService.GetUserNameAsync() : string.Empty;
         if(IsAuthenticated)
         {
-            await _gameSaveState.LoadFromStorage();
             var roles = await _userService.GetRolesAsync();
             IsAdmin = roles.Contains("Administrator");
         }

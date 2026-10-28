@@ -1,30 +1,52 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
+@using ResourceTrackerUI.Application.Services.Common
 @using ResourceTrackerUI.Features.Auth
+@inject GameSaveState GameSaveState
 
-<CascadingAuthenticationState>
-    <Router AppAssembly="@typeof(App).Assembly">
-        <Found Context="routeData">
-            <AuthorizeRouteView RouteData="@routeData"
-                                DefaultLayout="@typeof(MainLayout)">
-                <NotAuthorized>
-                    @if (context.User.Identity?.IsAuthenticated == true)
-                    {
-                        <LayoutView Layout="@typeof(MainLayout)">
-                            <AccessDenied />
-                        </LayoutView>
-                    }
-                    else
-                    {
-                        <RedirectToLogin />
-                    }
-                </NotAuthorized>
-            </AuthorizeRouteView>
-        </Found>
+@if (!_ready)
+{
+    @* Keep the router (and therefore every page) from rendering until the active game
+       save has been restored from localStorage. Pages read GameSaveState in their
+       OnInitializedAsync, so rendering early makes them query the API with no save id. *@
+    <div class="loading-progress-text"></div>
+}
+else
+{
+    <CascadingAuthenticationState>
+        <Router AppAssembly="@typeof(App).Assembly">
+            <Found Context="routeData">
+                <AuthorizeRouteView RouteData="@routeData"
+                                    DefaultLayout="@typeof(MainLayout)">
+                    <NotAuthorized>
+                        @if (context.User.Identity?.IsAuthenticated == true)
+                        {
+                            <LayoutView Layout="@typeof(MainLayout)">
+                                <AccessDenied />
+                            </LayoutView>
+                        }
+                        else
+                        {
+                            <RedirectToLogin />
+                        }
+                    </NotAuthorized>
+                </AuthorizeRouteView>
+            </Found>
 
-        <NotFound>
-            <LayoutView Layout="@typeof(MainLayout)">
-                <p>Page not found</p>
-            </LayoutView>
-        </NotFound>
-    </Router>
-</CascadingAuthenticationState>
+            <NotFound>
+                <LayoutView Layout="@typeof(MainLayout)">
+                    <p>Page not found</p>
+                </LayoutView>
+            </NotFound>
+        </Router>
+    </CascadingAuthenticationState>
+}
+
+@code {
+    private bool _ready;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GameSaveState.EnsureInitializedAsync();
+        _ready = true;
+    }
+}

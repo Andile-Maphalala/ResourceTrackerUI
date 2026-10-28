@@ -40,8 +40,38 @@ namespace ResourceTrackerUI.Features.Inventory
 
         protected override async Task OnInitializedAsync()
         {
+            GameSaveState.OnChange += OnActiveSaveChanged;
+
             if (!GameSaveState.HasActiveSave) return;
             await LoadQuests();
+        }
+
+        public void Dispose()
+        {
+            GameSaveState.OnChange -= OnActiveSaveChanged;
+        }
+
+        private async void OnActiveSaveChanged()
+        {
+            if (!GameSaveState.HasActiveSave)
+            {
+                _quests.Clear();
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+
+            try
+            {
+                await InvokeAsync(async () =>
+                {
+                    await LoadQuests();
+                    StateHasChanged();
+                });
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Could not load locations: {ex.Message}", Severity.Error);
+            }
         }
 
         private async Task LoadQuests()

@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @inject GameSaveState GameSaveState
 @inject NavigationManager Navigation
+@implements IDisposable
 
 @if (!IsAuthenticated)
 {
@@ -100,5 +101,10 @@ else
             IsAuthenticated = state.User.Identity?.IsAuthenticated ?? false;
         }
         GameSaveState.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        GameSaveState.OnChange -= StateHasChanged;
     }
 }

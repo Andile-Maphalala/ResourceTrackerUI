@@ -6,6 +6,7 @@
 @using ResourceTrackerUI.Domain.Models.Feature.Quest
 @using ResourceTrackerUI.Shared.CustomComponents
 @attribute [Authorize]
+@implements IDisposable
 
 <div class="max-w-6xl mx-auto space-y-8">
 
@@ -59,8 +60,31 @@
 
     protected override async Task OnInitializedAsync()
     {
+        GameSaveState.OnChange += OnActiveSaveChanged;
+
         if (!GameSaveState.HasActiveSave) return;
         await LoadQuests();
+    }
+
+    public void Dispose()
+    {
+        GameSaveState.OnChange -= OnActiveSaveChanged;
+    }
+
+    private async void OnActiveSaveChanged()
+    {
+        if (!GameSaveState.HasActiveSave)
+        {
+            _quests.Clear();
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        await InvokeAsync(async () =>
+        {
+            await LoadQuests();
+            StateHasChanged();
+        });
     }
 
     private async Task LoadQuests()

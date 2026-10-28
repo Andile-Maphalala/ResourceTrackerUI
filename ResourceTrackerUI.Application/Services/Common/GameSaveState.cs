@@ -1,11 +1,13 @@
-﻿
-
-using ResourceTrackerUI.Application.Interfaces;
+﻿using ResourceTrackerUI.Application.Interfaces;
 
 namespace ResourceTrackerUI.Application.Services.Common
 {
     public class GameSaveState(ILocalStorageService localStorageService)
     {
+        private const string StorageKey = "activeGameSave";
+
+        private Task? _initialization;
+
         public int? ActiveGameSaveId { get; private set; }
         public int? ActiveGameId { get; private set; }
         public string? ActiveGameName { get; private set; }
@@ -15,7 +17,14 @@ namespace ResourceTrackerUI.Application.Services.Common
 
         public event Action? OnChange;
 
-        public async Task SetActiveSave(int id,int gameId, string gameName, string saveName, string? gameImageUrl = null)
+        /// <summary>
+        /// Loads the active save from localStorage. Idempotent, so it is safe to call from
+        /// multiple components. App.razor awaits this before rendering the router so pages
+        /// never query the API with an empty save id after a hard refresh.
+        /// </summary>
+        public Task EnsureInitializedAsync() => _initialization ??= LoadFromStorageAsync();
+
+        public async Task SetActiveSave(int id, int gameId, string gameName, string saveName, string? gameImageUrl = null)
         {
             ActiveGameSaveId = id;
             ActiveGameId = gameId;
@@ -26,22 +35,27 @@ namespace ResourceTrackerUI.Application.Services.Common
             OnChange?.Invoke();
         }
 
-        public void ClearActiveSave()
+        /// <summary>
+        /// Clears the in-memory state and removes the persisted entry, so a refresh does not
+        /// resurrect a save that has been deleted or switched away from.
+        /// </summary>
+        public async Task ClearActiveSaveAsync()
         {
-            ActiveGameSaveId = null;
-            ActiveGameId = null;
-            ActiveGameName = null;
-            ActiveSaveName = null;
-            ActiveGameImageUrl = null;
+            ResetState();
+            await localStorageService.RemoveItemAsync(StorageKey);
             OnChange?.Invoke();
         }
 
-        // Call this on app start to reload from localStorage
-        public async Task LoadFromStorage()
+        private async Task LoadFromStorageAsync()
         {
-            var storage = await localStorageService.GetItemAsync<GameSaveStorageModel>("activeGameSave");
-            if (storage != null)
+            try
             {
+                var storage = await localStorageService.GetItemAsync<GameSaveStorageModel>(StorageKey);
+                if (storage?.Id is null)
+                {
+                    return;
+                }
+
                 ActiveGameSaveId = storage.Id;
                 ActiveGameId = storage.GameId;
                 ActiveGameName = storage.GameName;
@@ -49,6 +63,20 @@ namespace ResourceTrackerUI.Application.Services.Common
                 ActiveGameImageUrl = storage.GameImageUrl;
                 OnChange?.Invoke();
             }
+            catch (Exception)
+            {
+                // A corrupt entry must not stop the app from starting - fall back to no active save.
+                ResetState();
+            }
+        }
+
+        private void ResetState()
+        {
+            ActiveGameSaveId = null;
+            ActiveGameId = null;
+            ActiveGameName = null;
+            ActiveSaveName = null;
+            ActiveGameImageUrl = null;
         }
 
         private async Task PersistToStorage()
@@ -61,7 +89,7 @@ namespace ResourceTrackerUI.Application.Services.Common
                 SaveName = ActiveSaveName ?? string.Empty,
                 GameImageUrl = ActiveGameImageUrl
             };
-            await localStorageService.SetItemAsync("activeGameSave", data);
+            await localStorageService.SetItemAsync(StorageKey, data);
         }
 
         private class GameSaveStorageModel
