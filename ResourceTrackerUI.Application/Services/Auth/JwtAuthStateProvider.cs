@@ -20,22 +20,26 @@ namespace ResourceTrackerUI.Application.Services.Auth
 
             if (string.IsNullOrWhiteSpace(token))
             {
-                return new AuthenticationState(
-                    new ClaimsPrincipal(new ClaimsIdentity()));
+                return Anonymous();
             }
 
-            var identity = new ClaimsIdentity(ParseClaimsFromJwt(token), "jwt");
+            var user = BuildPrincipal(token);
 
-            return new AuthenticationState(
-                new ClaimsPrincipal(identity));
+            if (user is null)
+            {
+                // Expired or unreadable token - drop it so nothing keeps sending it to the API.
+                await _storage.RemoveItemAsync("token");
+                return Anonymous();
+            }
+
+            return new AuthenticationState(user);
         }
 
         public async Task MarkUserAsAuthenticatedAsync(string token)
         {
             await _storage.SetItemAsync("token", token);
 
-            var identity = new ClaimsIdentity(ParseClaimsFromJwt(token), "jwt");
-            var user = new ClaimsPrincipal(identity);
+            var user = BuildPrincipal(token) ?? Anonymous().User;
 
             NotifyAuthenticationStateChanged(
                 Task.FromResult(new AuthenticationState(user)));
@@ -45,18 +49,39 @@ namespace ResourceTrackerUI.Application.Services.Auth
         {
             await _storage.RemoveItemAsync("token");
 
-            var anonymous = new ClaimsPrincipal(new ClaimsIdentity());
-
             NotifyAuthenticationStateChanged(
-                Task.FromResult(new AuthenticationState(anonymous)));
+                Task.FromResult(Anonymous()));
         }
 
-        private IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
+        private static AuthenticationState Anonymous()
         {
-            var handler = new JwtSecurityTokenHandler();
-            var token = handler.ReadJwtToken(jwt);
+            return new AuthenticationState(
+                new ClaimsPrincipal(new ClaimsIdentity()));
+        }
 
-            return token.Claims;
+        /// <summary>
+        /// Builds the claims principal from the JWT, or returns null when the token cannot be read
+        /// or has already expired. The signature is intentionally not validated here - the API
+        /// remains the authority - but a stale token is useless to keep around.
+        /// </summary>
+        private static ClaimsPrincipal? BuildPrincipal(string jwt)
+        {
+            try
+            {
+                var token = new JwtSecurityTokenHandler().ReadJwtToken(jwt);
+
+                if (token.ValidTo != DateTime.MinValue && token.ValidTo <= DateTime.UtcNow)
+                {
+                    return null;
+                }
+
+                var identity = new ClaimsIdentity(token.Claims, "jwt");
+                return new ClaimsPrincipal(identity);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
     }
 }

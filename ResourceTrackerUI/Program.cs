@@ -28,7 +28,8 @@ namespace ResourceTrackerUI
             {
                 client.BaseAddress = new Uri(apiBaseUrl);
             })
-            .AddHttpMessageHandler<AuthHeaderHandler>();
+            .AddHttpMessageHandler<AuthHeaderHandler>()
+            .AddHttpMessageHandler<UnauthorizedRedirectHandler>();
 
             //Services
             builder.Services.AddApiClientServices(apiBaseUrl);

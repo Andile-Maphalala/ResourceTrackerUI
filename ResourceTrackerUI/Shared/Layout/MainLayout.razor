@@ -133,9 +133,8 @@
         }
     }
 
-    private async Task Logout()
+    private void Logout()
     {
-        await _authProvider.MarkUserAsLoggedOutAsync();
-        _navigation.NavigateTo("/");
+        _navigation.NavigateTo("/logout");
     }
 }

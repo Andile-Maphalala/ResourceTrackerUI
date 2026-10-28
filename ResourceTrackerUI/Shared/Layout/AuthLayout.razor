@@ -1,0 +1,23 @@
+﻿@inherits LayoutComponentBase
+
+@* MudBlazor providers chosen to mirror MainLayout so dialogs/snackbars work on auth pages *@
+<MudThemeProvider DefaultScrollbar="false" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<div class="min-h-screen bg-background text-on-surface font-body flex flex-col">
+
+    <header class="w-full flex items-center justify-between px-6 sm:px-10 h-16">
+        <a href="/" class="text-h3 font-h3 font-bold tracking-tighter text-primary">
+            Resource Tracker
+        </a>
+    </header>
+
+    <div class="flex-1 flex items-center justify-center px-4 sm:px-6 pb-16">
+        <div class="w-full max-w-md">
+            @Body
+        </div>
+    </div>
+
+</div>

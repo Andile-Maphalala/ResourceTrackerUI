@@ -1,43 +1,132 @@
 ﻿@page "/login"
+@layout AuthLayout
 
-@using System.Text.Json
+@using ResourceTrackerUI.ApiClient
+@using ResourceTrackerUI.Application.Common
 @using ResourceTrackerUI.Application.Interfaces
 @using ResourceTrackerUI.Application.Services.Auth
-@using ResourceTrackerUI.Domain.Models
 @using ResourceTrackerUI.Domain.Models.Auth
 
-<h3>Login</h3>
-<EditForm Model="model" OnValidSubmit="Submit" FormName="LoginForm">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
+<PageTitle>Sign in · Resource Tracker</PageTitle>
 
-    <div>
-        <label>Username (email)</label><br />
-        <InputText @bind-Value="model.Username" />
+<div class="glass-panel rounded-xl p-8 shadow-2xl">
+
+    <div class="flex flex-col items-center text-center mb-8">
+        <div class="w-12 h-12 rounded-full bg-primary/15 border border-primary/40 flex items-center justify-center mb-4">
+            <span class="material-symbols-outlined text-primary text-2xl">lock</span>
+        </div>
+        <h1 class="font-h2 text-h2 text-on-surface">Welcome back</h1>
+        <p class="text-body-sm text-on-surface-variant mt-1">Sign in to continue to Resource Tracker</p>
     </div>
 
-    <div style="margin-top:8px">
-        <label>Password</label><br />
-        <InputText @bind-Value="model.Password" type="password" />
-    </div>
-
-    <div style="margin-top:12px">
-        <button type="submit">Sign in</button>
-    </div>
-
-    @if (!string.IsNullOrEmpty(error))
+    @if (_sessionExpired)
     {
-        <div style="color:red;margin-top:12px">@error</div>
+        <div class="mb-5 flex items-start gap-2 rounded border border-secondary/40 bg-secondary/10 px-3 py-2.5
+            text-body-sm text-secondary" role="status">
+            <span class="material-symbols-outlined text-base">schedule</span>
+            <span>Your session expired. Sign in again to pick up where you left off.</span>
+        </div>
     }
-</EditForm>
 
-    @code {
+    @if (_signedOut)
+    {
+        <div class="mb-5 flex items-start gap-2 rounded border border-primary/40 bg-primary/10 px-3 py-2.5
+            text-body-sm text-primary" role="status">
+            <span class="material-symbols-outlined text-base">check_circle</span>
+            <span>You have been signed out.</span>
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="mb-5 flex items-start gap-2 rounded border border-error/40 bg-error-container/30 px-3 py-2.5
+            text-body-sm text-error" role="alert">
+            <span class="material-symbols-outlined text-base">error</span>
+            <span>@_error</span>
+        </div>
+    }
+
+    <EditForm Model="_model" OnValidSubmit="SubmitAsync" FormName="LoginForm">
+        <DataAnnotationsValidator />
+
+        <div class="mb-4">
+            <label for="username" class="font-label-caps text-label-caps text-on-surface-variant block mb-2">
+                EMAIL
+            </label>
+            <div class="relative">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg pointer-events-none">
+                    mail
+                </span>
+                <InputText id="username"
+                           @bind-Value="_model.Username"
+                           autocomplete="username"
+                           inputmode="email"
+                           autofocus
+                           class="w-full bg-surface-container border border-outline-variant/50 rounded py-2.5 pl-10 pr-3
+                            text-body text-on-surface placeholder:text-outline
+                            focus:outline-none focus:border-primary transition-colors" />
+            </div>
+            <ValidationMessage For="() => _model.Username" class="text-error text-body-sm mt-1 block" />
+        </div>
+
+        <div class="mb-6">
+            <label for="password" class="font-label-caps text-label-caps text-on-surface-variant block mb-2">
+                PASSWORD
+            </label>
+            <div class="relative">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg pointer-events-none">
+                    key
+                </span>
+                <InputText id="password"
+                           @bind-Value="_model.Password"
+                           type="@(_showPassword ? "text" : "password")"
+                           autocomplete="current-password"
+                           class="w-full bg-surface-container border border-outline-variant/50 rounded py-2.5 pl-10 pr-11
+                            text-body text-on-surface placeholder:text-outline
+                            focus:outline-none focus:border-primary transition-colors" />
+                <button type="button"
+                        @onclick="TogglePassword"
+                        aria-label="@(_showPassword ? "Hide password" : "Show password")"
+                        class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded text-outline
+                            hover:text-on-surface transition-colors">
+                    <span class="material-symbols-outlined text-lg">
+                        @(_showPassword ? "visibility_off" : "visibility")
+                    </span>
+                </button>
+            </div>
+            <ValidationMessage For="() => _model.Password" class="text-error text-body-sm mt-1 block" />
+        </div>
+
+        <button type="submit"
+                disabled="@_isSubmitting"
+                class="w-full py-3 bg-primary text-on-primary font-label-caps text-label-caps rounded
+                    hover:opacity-90 active:scale-[0.99] transition-all
+                    disabled:opacity-60 disabled:cursor-not-allowed
+                    flex items-center justify-center gap-2">
+            @if (_isSubmitting)
+            {
+                <span class="material-symbols-outlined text-base animate-spin">progress_activity</span>
+                <span>SIGNING IN…</span>
+            }
+            else
+            {
+                <span>SIGN IN</span>
+            }
+        </button>
+    </EditForm>
+
+    <div class="mt-6 pt-5 border-t border-white/5 text-center">
+        <a href="/" class="text-body-sm text-on-surface-variant hover:text-primary transition-colors">
+            ← Back to home
+        </a>
+    </div>
+
+</div>
+
+@code {
 
     [Inject]
     private IAuthService _authService { get; set; }
-
-    [Inject]
-    private ILocalStorageService _storage { get; set; }
 
     [Inject]
     private JwtAuthStateProvider _authProvider { get; set; }
@@ -45,21 +134,114 @@
     [Inject]
     private NavigationManager _navigation { get; set; }
 
-    private LoginRequestModel model { get; set; } = new();
-    private string? error;
+    private readonly LoginRequestModel _model = new();
+    private string _error = string.Empty;
+    private string _returnUrl = "/";
+    private bool _isSubmitting;
+    private bool _showPassword;
+    private bool _sessionExpired;
+    private bool _signedOut;
 
     protected override async Task OnInitializedAsync()
     {
-        var test = _authProvider.GetAuthenticationStateAsync();
+        _sessionExpired = string.Equals(GetQueryValue("expired"), "true", StringComparison.OrdinalIgnoreCase);
+        _signedOut = string.Equals(GetQueryValue("signedOut"), "true", StringComparison.OrdinalIgnoreCase);
+        _returnUrl = GetSafeReturnUrl(GetQueryValue("returnUrl"));
+
+        // Already signed in (e.g. someone navigated here by hand) - don't show the form.
+        var state = await _authProvider.GetAuthenticationStateAsync();
+        if (state.User.Identity?.IsAuthenticated == true)
+        {
+            _navigation.NavigateTo(_returnUrl);
+        }
     }
 
-    private async Task Submit(EditContext context)
+    private void TogglePassword() => _showPassword = !_showPassword;
+
+    private async Task SubmitAsync()
     {
-        var response = await _authService.LoginAsync(model);
+        if (_isSubmitting)
+        {
+            return;
+        }
 
-        await _storage.SetItemAsync("token", response.Token);
-        await _authProvider.MarkUserAsAuthenticatedAsync(response.Token);
-        _navigation.NavigateTo("/");
+        _isSubmitting = true;
+        _error = string.Empty;
+
+        try
+        {
+            var response = await _authService.LoginAsync(_model);
+
+            // Persists the token and raises AuthenticationStateChanged, so the layout updates.
+            await _authProvider.MarkUserAsAuthenticatedAsync(response.Token);
+
+            _navigation.NavigateTo(_returnUrl);
+        }
+        catch (ApiException ex) when (ex.StatusCode == 401)
+        {
+            _error = "Incorrect email or password.";
+        }
+        catch (ApiException ex)
+        {
+            _error = ApiExceptionHelper.GetMessage(ex);
+        }
+        catch (Exception)
+        {
+            _error = "Unable to sign in right now. Check your connection and try again.";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
     }
 
+    private string? GetQueryValue(string key)
+    {
+        var queryStart = _navigation.Uri.IndexOf('?');
+        if (queryStart < 0)
+        {
+            return null;
+        }
+
+        var query = _navigation.Uri[(queryStart + 1)..];
+
+        var fragmentStart = query.IndexOf('#');
+        if (fragmentStart >= 0)
+        {
+            query = query[..fragmentStart];
+        }
+
+        foreach (var pair in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var parts = pair.Split('=', 2);
+            if (parts.Length == 2 && Uri.UnescapeDataString(parts[0]) == key)
+            {
+                return Uri.UnescapeDataString(parts[1]);
+            }
+        }
+
+        return null;
+    }
+
+    private static string GetSafeReturnUrl(string? returnUrl)
+    {
+        // Only allow local paths - never redirect to another origin after signing in.
+        if (string.IsNullOrWhiteSpace(returnUrl))
+        {
+            return "/";
+        }
+
+        if (!returnUrl.StartsWith('/') || returnUrl.StartsWith("//") || returnUrl.StartsWith("/\\"))
+        {
+            return "/";
+        }
+
+        // Never send an already signed-in user back to the login page.
+        if (returnUrl.StartsWith("/login", StringComparison.OrdinalIgnoreCase))
+        {
+            return "/";
+        }
+
+        return returnUrl;
+    }
 }

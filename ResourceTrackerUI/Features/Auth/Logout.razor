@@ -1,0 +1,127 @@
+﻿@page "/logout"
+@layout AuthLayout
+
+@using ResourceTrackerUI.Application.Interfaces
+@using ResourceTrackerUI.Application.Services.Auth
+@using ResourceTrackerUI.Application.Services.Common
+
+<PageTitle>Sign out · Resource Tracker</PageTitle>
+
+<div class="glass-panel rounded-xl p-8 shadow-2xl text-center">
+
+    @if (_alreadySignedOut)
+    {
+        <div class="w-12 h-12 rounded-full bg-primary/15 border border-primary/40 flex items-center justify-center mx-auto mb-4">
+            <span class="material-symbols-outlined text-primary text-2xl">check_circle</span>
+        </div>
+        <h1 class="font-h2 text-h2">You're signed out</h1>
+        <p class="text-body-sm text-on-surface-variant mt-1 mb-6">
+            Sign in again whenever you're ready.
+        </p>
+        <a href="/login"
+           class="block w-full py-3 bg-primary text-on-primary font-label-caps text-label-caps rounded
+            hover:opacity-90 active:scale-[0.99] transition-all">
+            SIGN IN
+        </a>
+        <a href="/" class="inline-block mt-4 text-body-sm text-on-surface-variant hover:text-primary transition-colors">
+            ← Back to home
+        </a>
+    }
+    else if (_isSigningOut)
+    {
+        <div class="py-6 flex flex-col items-center">
+            <span class="material-symbols-outlined text-primary text-4xl animate-spin mb-4">progress_activity</span>
+            <p class="text-body text-on-surface-variant">Signing you out…</p>
+        </div>
+    }
+    else
+    {
+        <div class="w-12 h-12 rounded-full bg-error/10 border border-error/30 flex items-center justify-center mx-auto mb-4">
+            <span class="material-symbols-outlined text-error text-2xl">logout</span>
+        </div>
+        <h1 class="font-h2 text-h2">Sign out?</h1>
+        <p class="text-body-sm text-on-surface-variant mt-1">
+            @if (string.IsNullOrWhiteSpace(_email))
+            {
+                <span>You'll need to sign in again to continue.</span>
+            }
+            else
+            {
+                <span>Signed in as <span class="text-on-surface">@_email</span>. You'll need to sign in again to continue.</span>
+            }
+        </p>
+
+        <div class="mt-6 space-y-3">
+            <button @onclick="SignOutAsync"
+                    class="block w-full py-3 bg-primary text-on-primary font-label-caps text-label-caps rounded
+                    hover:opacity-90 active:scale-[0.99] transition-all">
+                SIGN OUT
+            </button>
+            <button @onclick="Cancel"
+                    class="block w-full py-3 border border-outline-variant/50 text-on-surface-variant
+                    font-label-caps text-label-caps rounded hover:border-primary/50 hover:text-primary
+                    transition-colors">
+                CANCEL
+            </button>
+        </div>
+    }
+
+</div>
+
+@code {
+
+    [Inject]
+    private JwtAuthStateProvider _authProvider { get; set; }
+
+    [Inject]
+    private ICurrentUserService _userService { get; set; }
+
+    [Inject]
+    private ILocalStorageService _storage { get; set; }
+
+    [Inject]
+    private GameSaveState _gameSaveState { get; set; }
+
+    [Inject]
+    private NavigationManager _navigation { get; set; }
+
+    private bool _alreadySignedOut;
+    private bool _isSigningOut;
+    private string _email = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await _authProvider.GetAuthenticationStateAsync();
+
+        if (state.User.Identity?.IsAuthenticated != true)
+        {
+            _alreadySignedOut = true;
+            return;
+        }
+
+        _email = await _userService.GetEmailAsync();
+    }
+
+    private async Task SignOutAsync()
+    {
+        if (_isSigningOut)
+        {
+            return;
+        }
+
+        _isSigningOut = true;
+
+        // Stop any in-flight API calls before the session is cleared.
+        appCancellation.CancelAll();
+
+        _gameSaveState.ClearActiveSave();
+        await _storage.RemoveItemAsync("activeGameSave");
+
+        await _authProvider.MarkUserAsLoggedOutAsync();
+
+        // Full reload guarantees no user data survives in memory between sessions.
+        _navigation.NavigateTo("/login?signedOut=true", forceLoad: true);
+    }
+
+    private void Cancel() => _navigation.NavigateTo("/");
+}

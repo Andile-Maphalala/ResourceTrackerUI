@@ -3,6 +3,15 @@
 @code {
     protected override void OnInitialized()
     {
-        Navigation.NavigateTo("/login", true);
+        var relativePath = Navigation.ToBaseRelativePath(Navigation.Uri);
+
+        // Avoid a redirect loop if this ever renders on the login page itself.
+        if (relativePath.StartsWith("login", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var returnUrl = "/" + relativePath;
+        Navigation.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(returnUrl)}");
     }
 }

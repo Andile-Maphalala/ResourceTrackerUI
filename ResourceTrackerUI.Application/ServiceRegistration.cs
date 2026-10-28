@@ -19,6 +19,7 @@ namespace ResourceTrackerUI.Application
             services.AddScoped<JwtAuthStateProvider>();
             services.AddScoped<AuthenticationStateProvider>(sp => sp.GetRequiredService<JwtAuthStateProvider>());
             services.AddScoped<AuthHeaderHandler>();
+            services.AddScoped<UnauthorizedRedirectHandler>();
 
             RegisterMapper(services);
 
