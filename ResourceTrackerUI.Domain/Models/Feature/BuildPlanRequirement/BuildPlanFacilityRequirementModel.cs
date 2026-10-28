@@ -6,6 +6,8 @@ namespace ResourceTrackerUI.Domain.Models.Feature.BuildPlanRequirement
     {
         public int FacilityId { get; set; }
         public string Name { get; set; }
+        public int RequiredLevel { get; set; }
+        public int OwnedLevel { get; set; }
         public bool IsAvailable { get; set; }
         public string? ImageUrl { get; set; }
         public List<int> RequiredFor { get; set; }

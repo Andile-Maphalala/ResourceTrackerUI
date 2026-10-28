@@ -16,6 +16,13 @@
         </MudCardContent>
     </MudForm>
 
+    @if (FooterContent != null)
+    {
+        <MudCardContent Class="pt-0">
+            @FooterContent
+        </MudCardContent>
+    }
+
     <MudCardActions Class="d-flex justify-end gap-2">
         <MudButton OnClick="Cancel"
                    Variant="Variant.Filled"
@@ -42,6 +49,13 @@
 
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Extra content rendered below the form, outside the MudForm. Use it for controls that must
+    /// stay interactive when the form is disabled, such as a destructive action in Delete mode.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? FooterContent { get; set; }
 
     [Parameter]
     public bool DisableInputs { get; set; } = false;

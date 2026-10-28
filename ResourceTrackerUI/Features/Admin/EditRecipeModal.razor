@@ -1,0 +1,92 @@
+@using ResourceTrackerUI.Domain.Enums
+@using ResourceTrackerUI.Domain.Models.Feature.Recipe
+@using ResourceTrackerUI.Shared.CustomComponents.FormControls
+
+<RtForm TModel="RecipeModel"
+        Model="Model"
+        FormMode="FormMode"
+        OnSubmit="Submit"
+        OnCancel="Cancel"
+        DeleteMessage="@($"Delete the recipe for {Model.ComponentName}?")">
+    <MudGrid>
+        <MudItem xs="12" sm="8">
+            <RtInput Value="Model.ComponentName" For="@(() => Model.ComponentName)" Disabled="true" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <RtInput @bind-Value="Model.AmountMade" For="@(() => Model.AmountMade)" Disabled="@(!IsEditable)" />
+        </MudItem>
+
+        <MudItem xs="12" sm="8">
+            <RtSelect @bind-Value="Model.RequiredFacilityId"
+                      For="@(() => Model.RequiredFacilityId)"
+                      LoadData="LoadFacilityOptions"
+                      SearchData="SearchFacilityOptions"
+                      SearchPlaceholder="Search facilities"
+                      EnableImages="true"
+                      EnableSearch="true"
+                      Clearable="true"
+                      Disabled="@(!IsEditable)"
+                      OnValueChanged="OnFacilityChanged" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <RtInput @bind-Value="Model.RequiredFacilityLevel"
+                     For="@(() => Model.RequiredFacilityLevel)"
+                     Disabled="@(!IsEditable || !HasStation)" />
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudDivider Class="my-2" />
+            <MudText Typo="Typo.subtitle2">Ingredients</MudText>
+        </MudItem>
+
+        @if (Model.Ingredients.Count == 0)
+        {
+            <MudItem xs="12">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">No ingredients.</MudText>
+            </MudItem>
+        }
+
+        @foreach (var ingredient in Model.Ingredients)
+        {
+            <MudItem xs="12" @key="ingredient">
+                <MudGrid>
+                    <MudItem xs="12" sm="7">
+                        <RtSelect @bind-Value="ingredient.ComponentId"
+                                  For="@(() => ingredient.ComponentId)"
+                                  LoadData="LoadIngredientOptions"
+                                  SearchData="@(term => SearchIngredientOptions(term, ingredient))"
+                                  SearchPlaceholder="Search all components"
+                                  EnableImages="true"
+                                  EnableSearch="true"
+                                  Disabled="@(!IsEditable)" />
+                    </MudItem>
+                    <MudItem xs="7" sm="3">
+                        <RtInput @bind-Value="ingredient.AmountRequired"
+                                 For="@(() => ingredient.AmountRequired)"
+                                 Disabled="@(!IsEditable)" />
+                    </MudItem>
+                    @if (IsEditable)
+                    {
+                        <MudItem xs="5" sm="2" Class="d-flex align-center">
+                            <MudIconButton Icon="@Icons.Material.Filled.RemoveCircle"
+                                           Color="Color.Error"
+                                           OnClick="@(() => RemoveIngredient(ingredient))" />
+                        </MudItem>
+                    }
+                </MudGrid>
+            </MudItem>
+        }
+
+        @if (IsEditable)
+        {
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="AddIngredient">
+                    Add Ingredient
+                </MudButton>
+            </MudItem>
+        }
+    </MudGrid>
+</RtForm>

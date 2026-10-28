@@ -46,6 +46,17 @@ namespace ResourceTrackerUI.Application.Services.Feature
             await _apiClient.ApiGameDeleteGameAsync(id, cancellationToken);
         }
 
+        public async Task<PurgeGameResponseModel> PurgeGame(int id, string confirmName, CancellationToken cancellationToken)
+        {
+            var response = await _apiClient.ApiGamePurgeGameAsync(new PurgeGameCommand
+            {
+                Id = id,
+                ConfirmName = confirmName
+            }, cancellationToken);
+
+            return _mapper.Map<PurgeGameResponseModel>(response);
+        }
+
         public async Task<GameModel> GetGame(int Id, CancellationToken cancellationToken)
         {
            var response = await _apiClient.ApiGameGetGameAsync(Id, cancellationToken);

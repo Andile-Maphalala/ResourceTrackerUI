@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using ResourceTrackerUI.Application.Common;
 using ResourceTrackerUI.Application.Interfaces;
+using ResourceTrackerUI.Application.Services.Common;
 using ResourceTrackerUI.Domain.Enums;
 using ResourceTrackerUI.Domain.Models.Feature.Game;
+using ApiException = ResourceTrackerUI.ApiClient.ApiException;
 
 namespace ResourceTrackerUI.Features.Admin
 {
@@ -20,6 +23,9 @@ namespace ResourceTrackerUI.Features.Admin
         [Inject]
         private ISnackbar Snackbar { get; set; }
 
+        [Inject]
+        private GameSaveState GameSaveState { get; set; }
+
         [Parameter]
         public GameModel Model { get; set; } = new GameModel();
         [Parameter]
@@ -27,6 +33,14 @@ namespace ResourceTrackerUI.Features.Admin
 
         private string _base64 { get; set; }
         private bool _changedPicture { get; set; } = false;
+
+        private string _confirmName = string.Empty;
+        private bool _isPurging;
+
+        private bool CanPurge =>
+            !_isPurging &&
+            !string.IsNullOrEmpty(_confirmName) &&
+            _confirmName == Model.Name;
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             if (firstRender)
@@ -52,6 +66,47 @@ namespace ResourceTrackerUI.Features.Admin
             }
 
             MudDialog.Close();
+        }
+
+        private async Task Purge()
+        {
+            if (!CanPurge)
+                return;
+
+            _isPurging = true;
+            await InvokeAsync(StateHasChanged);
+
+            try
+            {
+                var result = await Service.PurgeGame(Model.Id, _confirmName, appCancellation.Token);
+
+                if (GameSaveState.ActiveGameId == Model.Id)
+                {
+                    GameSaveState.ClearActiveSave();
+                }
+
+                Snackbar.Add(
+                    $"Purged '{result.GameName}'. " +
+                    $"Components {result.ComponentsDeleted}, recipes {result.RecipesDeleted}, " +
+                    $"inventory rows {result.InventoryRowsDeleted}, quests {result.QuestsDeleted}, " +
+                    $"saves {result.GameSavesDeleted}, build plans {result.BuildPlansDeleted}, " +
+                    $"facilities {result.PlayerFacilitiesDeleted}, images {result.ImageFilesDeleted}.",
+                    Severity.Success);
+
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            catch (ApiException ex)
+            {
+                Snackbar.Add(ApiExceptionHelper.GetMessage(ex), Severity.Error);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Purge failed: {ex.Message}", Severity.Error);
+            }
+            finally
+            {
+                _isPurging = false;
+            }
         }
 
         private void Cancel() => MudDialog.Cancel();

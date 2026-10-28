@@ -24,13 +24,15 @@
     [Parameter]
     public string? Subtitle { get; set; }
 
-    private bool IsFound => Facility.IsAvailable;
+    private bool IsSatisfied => Facility.IsAvailable;
+    private bool NeedsUpgrade => !IsSatisfied && Facility.OwnedLevel > 0;
+    private bool IsMissing => !IsSatisfied && !NeedsUpgrade;
 
-    private string BorderClass => IsFound ? "border-primary/20" : "border-error/20";
-    private string AccentClass => IsFound ? "text-primary" : "text-error";
-    private string TitleClass => IsFound ? "" : "text-on-surface-variant";
-    private string SubtitleClass => IsFound ? "text-on-surface-variant" : "text-error/60";
-    private string StatusIcon => IsFound ? "check_circle" : "cancel";
+    private string BorderClass => IsSatisfied ? "border-primary/20" : NeedsUpgrade ? "border-secondary/20" : "border-error/20";
+    private string AccentClass => IsSatisfied ? "text-primary" : NeedsUpgrade ? "text-secondary" : "text-error";
+    private string TitleClass => IsSatisfied ? "" : "text-on-surface-variant";
+    private string SubtitleClass => IsSatisfied ? "text-on-surface-variant" : NeedsUpgrade ? "text-secondary/80" : "text-error/60";
+    private string StatusIcon => IsSatisfied ? "check_circle" : NeedsUpgrade ? "upgrade" : "cancel";
 
     private string ResolvedSubtitle => Subtitle ?? DefaultSubtitle;
 
@@ -38,7 +40,12 @@
     {
         get
         {
-            var baseText = IsFound ? "Available" : "Not Found in Network";
+            var baseText = IsSatisfied
+                ? $"Lvl {Facility.OwnedLevel} · Available"
+                : NeedsUpgrade
+                    ? $"Lvl {Facility.OwnedLevel} · Needs Lvl {Facility.RequiredLevel}"
+                    : $"Not built · Needs Lvl {Facility.RequiredLevel}";
+
             var count = Facility.RequiredFor?.Count ?? 0;
             return count == 0
                 ? baseText
